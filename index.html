@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D&D Combat Tracker</title>
+    
+    <!-- Configurações PWA (Aplicativo Offline) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/188/188987.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -105,7 +111,7 @@
     </main>
 
     <!-- Console Inferior -->
-    <footer class="bg-slate-900 border-t border-slate-800 p-4 shrink-0">
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 px-0 shrink-0">
         <div class="max-w-xl mx-auto flex gap-4">
             
             <!-- Coluna 1: Controles e Rodada -->
@@ -127,10 +133,10 @@
             <!-- Coluna 2: Teclado Numérico -->
             <div class="flex-1">
                 <div class="flex justify-between items-center mb-2 px-1">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase overflow-hidden whitespace-nowrap">
+                    <div class="text-lg text-slate-500 font-bold overflow-hidden whitespace-nowrap truncate mr-2">
                         Alvo: <span id="targetName" class="text-blue-400">Nenhum</span>
                     </div>
-                    <div class="text-2xl font-mono font-bold text-slate-100" id="numpadDisplay">0</div>
+                    <div class="text-lg font-mono font-bold text-slate-100 shrink-0" id="numpadDisplay">0</div>
                 </div>
 
                 <div class="numpad-grid">
@@ -160,7 +166,7 @@
                     ☠️
                 </button>
                 <!-- Botão de Iniciativa -->
-                <button onclick="applyInitiative()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg" title="Definir Iniciativa">
+                <button onclick="applyInitiative()" onmousedown="startInitPress(event)" onmouseup="cancelInitPress(event)" onmouseleave="cancelInitPress(event)" ontouchstart="startInitPress(event)" ontouchend="cancelInitPress(event)" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg" title="Definir Iniciativa (Segure para rolar monstros)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10h7l-9 11v-7H4l9-11v7z"/></svg>
                 </button>
             </div>
@@ -211,6 +217,10 @@
 
         let pressTimer;
         let deleteVisibleId = null;
+        let editingId = null; // Nova variável para controle de edição
+
+        let initPressTimer;
+        let didInitLongPress = false;
 
         window.onload = () => {
             const savedPlayers = localStorage.getItem('dnd_players');
@@ -226,6 +236,7 @@
             const caInp = document.getElementById('caInp');
             const atkInp = document.getElementById('atkInp');
             
+            editingId = null; // Reseta o ID de edição ao criar um novo
             modalType = type;
             document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador' : 'Novo Monstro';
             document.getElementById('initInp').value = "";
@@ -257,25 +268,44 @@
 
             if (!name) return;
 
-            const newEntity = {
-                id: Date.now(),
-                name,
-                initiative: init,
-                hpMax: hp,
-                hpCurrent: hp,
-                ca,
-                atkInfo: atk,
-                type: modalType,
-                statusBrain: false,
-                statusSpiral: false
-            };
+            // Se estiver editando um combatente existente
+            if (editingId) {
+                const index = combatants.findIndex(c => c.id === editingId);
+                if (index !== -1) {
+                    combatants[index].name = name;
+                    combatants[index].initiative = init;
+                    combatants[index].hpMax = hp;
+                    // Ajusta o HP atual caso o novo HP máximo seja menor
+                    if (combatants[index].hpCurrent > hp) combatants[index].hpCurrent = hp;
+                    combatants[index].ca = ca;
+                    combatants[index].atkInfo = atk;
+                    
+                    if (combatants[index].type === 'player') savePlayersToStorage();
+                }
+                editingId = null;
+            } 
+            // Se for um novo combatente
+            else {
+                const newEntity = {
+                    id: Date.now(),
+                    name,
+                    initiative: init,
+                    hpMax: hp,
+                    hpCurrent: hp,
+                    ca,
+                    atkInfo: atk,
+                    type: modalType,
+                    statusBrain: false,
+                    statusSpiral: false
+                };
 
-            combatants.push(newEntity);
-            if (modalType === 'monster') {
-                monsterCounter++;
-                lastMonsterData = { hp, ca, atk };
-            } else {
-                savePlayersToStorage();
+                combatants.push(newEntity);
+                if (modalType === 'monster') {
+                    monsterCounter++;
+                    lastMonsterData = { hp, ca, atk };
+                } else {
+                    savePlayersToStorage();
+                }
             }
 
             sortCombatants();
@@ -283,12 +313,32 @@
             renderList(true);
         }
 
+        function editCombatant(event, id) {
+            event.stopPropagation();
+            cancelDeleteMode(event);
+            
+            const c = combatants.find(c => c.id === id);
+            if (!c) return;
+
+            editingId = c.id;
+            modalType = c.type;
+            
+            document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro');
+            document.getElementById('nameInp').value = c.name;
+            document.getElementById('initInp').value = c.initiative;
+            document.getElementById('hpInp').value = c.hpMax;
+            document.getElementById('caInp').value = c.ca;
+            document.getElementById('atkInp').value = c.atkInfo;
+            
+            document.getElementById('entityModal').style.display = 'flex';
+        }
+
         function startPress(id) {
             if (deleteVisibleId) return;
             pressTimer = window.setTimeout(() => {
                 deleteVisibleId = id;
                 renderList();
-            }, 600);
+            }, 4000); // Aumentado para 4 segundos
         }
 
         function cancelPress() {
@@ -377,7 +427,7 @@
             combatants.forEach((c, index) => {
                 const card = document.createElement('div');
                 card.id = `card-${c.id}`;
-                card.className = `combat-card bg-slate-800/40 border border-slate-700 p-4 rounded-2xl flex items-center justify-between cursor-pointer transition-all relative overflow-hidden
+                card.className = `combat-card bg-slate-800/40 border border-slate-700 p-0 px-2 rounded-2xl flex items-center justify-between cursor-pointer transition-all relative overflow-hidden
                     ${selectedId === c.id ? 'card-selected' : ''} 
                     ${activeTurnIndex === index ? 'active-turn' : ''}`;
                 
@@ -395,6 +445,10 @@
                         <button onclick="cancelDeleteMode(event)" class="bg-slate-800 p-3 rounded-full text-slate-300">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
                         </button>
+                        <!-- Novo botão de Editar (Azul) -->
+                        <button onclick="editCombatant(event, ${c.id})" class="bg-blue-600 p-4 rounded-full text-white shadow-xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
                         <button onclick="removeCombatant(event, ${c.id})" class="bg-white p-4 rounded-full text-red-700 shadow-xl">
                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9 6-6m-6 0 6 6"/></svg>
                         </button>
@@ -409,20 +463,20 @@
                 if (c.statusBrain) statusHtml += '🧠';
 
                 card.innerHTML += `
-                    <div class="flex items-center gap-4">
-                        <div class="${activeTurnIndex === index ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300'} font-bold w-10 h-10 flex items-center justify-center rounded-full text-lg shrink-0">
+                    <div class="flex items-center gap-2">
+                        <div class="${activeTurnIndex === index ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300'} font-bold w-10 h-10 flex items-center justify-center rounded-full text-lg shrink-0 my-1">
                             ${c.initiative}
                         </div>
-                        <div>
+                        <div class="py-1">
                             <h3 class="font-bold text-lg leading-none ${c.type === 'monster' ? 'text-red-400' : ''}">${c.name}</h3>
-                            <p class="text-slate-400 text-[11px] mt-1 uppercase font-bold tracking-tight">CA: ${c.ca} | ${c.atkInfo}</p>
+                            <p class="text-slate-300 text-lg font-semibold tracking-tight leading-none mt-1">CA: ${c.ca} | ${c.atkInfo}</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
                         <div class="text-2xl flex gap-1">${statusHtml}</div>
-                        <div class="text-right">
-                            <div class="text-2xl font-bold ${hpColor}">${c.hpCurrent}/${c.hpMax}</div>
-                            <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider leading-none">HP</div>
+                        <div class="text-center py-1">
+                            <div class="text-2xl font-bold leading-none ${hpColor}">${c.hpCurrent}/${c.hpMax}</div>
+                            <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider leading-none mt-1">HP</div>
                         </div>
                     </div>
                 `;
@@ -473,7 +527,41 @@
             }
         }
 
+        function startInitPress(event) {
+            didInitLongPress = false;
+            initPressTimer = window.setTimeout(() => {
+                didInitLongPress = true;
+                rollMonsterInitiatives();
+            }, 2000); // Espera 2 segundos
+        }
+
+        function cancelInitPress(event) {
+            window.clearTimeout(initPressTimer);
+        }
+
+        function rollMonsterInitiatives() {
+            let changed = false;
+            combatants.forEach(c => {
+                if (c.type === 'monster') {
+                    c.initiative = Math.floor(Math.random() * 20) + 1;
+                    changed = true;
+                }
+            });
+            
+            if (changed) {
+                sortCombatants();
+                renderList(true);
+                clearDisplay();
+            }
+        }
+
         function applyInitiative() {
+            // Se a ação foi desencadeada por um "long press", ignora o clique normal
+            if (didInitLongPress) {
+                didInitLongPress = false;
+                return;
+            }
+
             if (!selectedId) return;
             const value = parseInt(currentInput);
             const index = combatants.findIndex(c => c.id === selectedId);
@@ -487,6 +575,15 @@
 
         function savePlayersToStorage() {
             localStorage.setItem('dnd_players', JSON.stringify(combatants.filter(c => c.type === 'player')));
+        }
+
+        // Registo do Service Worker para PWA (Funcionamento Offline)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(() => console.log('Service Worker Registado! O Tracker agora funciona offline.'))
+                    .catch((err) => console.log('Erro no registo do Service Worker:', err));
+            });
         }
     </script>
 </body>
