@@ -122,6 +122,17 @@
             z-index: 100;
         }
         .toast-show { opacity: 1 !important; top: 40px !important; }
+
+        /* Menu Circular */
+        #circularMenu {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 60;
+        }
     </style>
 </head>
 <body class="flex flex-col">
@@ -147,7 +158,7 @@
                     <button onclick="openModal('monster')" class="btn-control hover:bg-slate-700" title="Add Monstro">🧌</button>
                     <button onclick="endCombat()" onmousedown="startEndCombatPress(event)" onmouseup="cancelEndCombatPress(event)" onmouseleave="cancelEndCombatPress(event)" ontouchstart="startEndCombatPress(event)" ontouchend="cancelEndCombatPress(event)" class="btn-control hover:bg-red-900/40 border-red-900/50" title="Terminar Combate (Segure 3s para apagar tudo)">❌</button>
                     <button onclick="nextTurn()" class="btn-control hover:bg-amber-900/40 border-amber-900/50" title="Próximo">⏩</button>
-                    <button onclick="toggleSpiralStatus()" class="btn-control hover:bg-slate-700" title="Status Espiral">🌀</button>
+                    <button onclick="openConditionMenu()" class="btn-control hover:bg-slate-700" title="Condições">🌀</button>
                     <button onclick="toggleBrainStatus()" class="btn-control hover:bg-slate-700" title="Concentração (🧠)">🧠</button>
                 </div>
             </div>
@@ -225,6 +236,26 @@
         </div>
     </div>
 
+    <!-- Modal de Concentração -->
+    <div id="concentrationModal" class="modal" style="z-index: 70;">
+        <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-sm border border-slate-700 text-center">
+            <div class="text-4xl mb-4">🧠</div>
+            <h2 class="text-xl font-bold mb-4 text-white">Teste de Concentração</h2>
+            <p class="text-slate-300 mb-6">Passou no teste de concentração? Sim ou Não.</p>
+            <div class="flex gap-4">
+                <button onclick="answerConcentration(true)" class="flex-1 p-3 rounded-xl bg-emerald-600 font-bold text-white hover:bg-emerald-500">Sim</button>
+                <button onclick="answerConcentration(false)" class="flex-1 p-3 rounded-xl bg-red-600 font-bold text-white hover:bg-red-500">Não</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Circular de Condições -->
+    <div id="circularMenu" onclick="closeConditionMenu(event)">
+        <div class="relative w-64 h-64" id="circleContainer">
+            <!-- Gerado via JS -->
+        </div>
+    </div>
+
     <script>
         let combatants = [];
         let activeTurnId = null; 
@@ -239,6 +270,7 @@
         let deleteVisibleId = null;
         let editingId = null; 
         let showEliminated = true; // Controle da divisória
+        let concentrationTargetId = null;
 
         let initPressTimer;
         let didInitLongPress = false;
@@ -251,6 +283,14 @@
             const savedPlayers = localStorage.getItem('dnd_players');
             if (savedPlayers) {
                 combatants = JSON.parse(savedPlayers);
+                combatants.forEach(c => {
+                    if (!c.conditions) c.conditions = [];
+                    // Migrar dados da versão anterior
+                    if (c.statusSpiral) {
+                        if (!c.conditions.includes('🌀')) c.conditions.push('🌀');
+                        delete c.statusSpiral;
+                    }
+                });
                 if (combatants.length > 0) activeTurnId = combatants[0].id;
                 renderList();
             }
@@ -381,7 +421,7 @@
                     atkInfo: atk,
                     type: modalType,
                     statusBrain: false,
-                    statusSpiral: false
+                    conditions: []
                 };
 
                 combatants.push(newEntity);
@@ -460,13 +500,69 @@
             }
         }
 
-        function toggleSpiralStatus() {
+        function openConditionMenu() {
             if (!selectedId) { showToast('⚠️ Selecione um alvo!'); return; }
+            const container = document.getElementById('circleContainer');
+            container.innerHTML = `<button class="absolute top-1/2 left-1/2 -mt-6 -ml-6 w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-white font-bold z-10 border border-slate-500 shadow-xl" onclick="closeConditionMenu(event, true)">X</button>`;
+            
+            const conditions = [
+                { icon: '😍', name: 'Enfeit.' },
+                { icon: '😱', name: 'Amedr.' },
+                { icon: '🚫', name: 'Incap.' },
+                { icon: '👻', name: 'Invis.' },
+                { icon: '🐍', name: 'Enven.' },
+                { icon: '🧎', name: 'Caído' },
+                { icon: '😮‍💨', name: 'Exaust.' }
+            ];
+
+            const radius = 95;
+            conditions.forEach((cond, i) => {
+                const angle = (i * (360 / conditions.length) - 90) * (Math.PI / 180); // Inicia no topo
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                const el = document.createElement('div');
+                el.className = "absolute top-1/2 left-1/2 -mt-6 -ml-6 w-12 h-12 flex flex-col items-center justify-center";
+                el.style.transform = `translate(${x}px, ${y}px)`;
+                
+                const c = combatants.find(comp => comp.id === selectedId);
+                const isActive = c.conditions && c.conditions.includes(cond.icon);
+                const bgClass = isActive ? 'bg-blue-600 border-blue-400' : 'bg-slate-800 border-slate-600';
+
+                el.innerHTML = `
+                    <button onclick="toggleCondition('${cond.icon}')" class="w-12 h-12 rounded-full text-2xl flex items-center justify-center border ${bgClass} shadow-lg active:scale-90 transition-transform">
+                        ${cond.icon}
+                    </button>
+                    <span class="text-[10px] text-slate-200 mt-1 font-bold bg-slate-900/80 px-1 rounded">${cond.name}</span>
+                `;
+                container.appendChild(el);
+            });
+
+            document.getElementById('circularMenu').style.display = 'flex';
+        }
+
+        function closeConditionMenu(e, force = false) {
+            if (force || (e && e.target.id === 'circularMenu')) {
+                document.getElementById('circularMenu').style.display = 'none';
+            }
+        }
+
+        function toggleCondition(icon) {
+            if (!selectedId) return;
             const index = combatants.findIndex(c => c.id === selectedId);
             if (index !== -1) {
-                combatants[index].statusSpiral = !combatants[index].statusSpiral;
+                if (!combatants[index].conditions) combatants[index].conditions = [];
+                
+                const condIndex = combatants[index].conditions.indexOf(icon);
+                if (condIndex !== -1) {
+                    combatants[index].conditions.splice(condIndex, 1);
+                } else {
+                    combatants[index].conditions.push(icon);
+                }
+                
                 if (combatants[index].type === 'player') savePlayersToStorage();
                 updateCardTargeted(combatants[index]);
+                openConditionMenu(); // Atualiza cores no menu sem fechar
             }
         }
 
@@ -506,7 +602,7 @@
                 c.initiative = 0;
                 c.hpCurrent = c.hpMax; 
                 c.statusBrain = false; 
-                c.statusSpiral = false; 
+                c.conditions = []; 
             });
             
             savePlayersToStorage(); 
@@ -598,8 +694,7 @@
                 }
 
                 const hpColor = c.type === 'monster' ? 'text-red-500' : 'text-emerald-400';
-                let statusHtml = '';
-                if (c.statusSpiral) statusHtml += '🌀';
+                let statusHtml = (c.conditions || []).join('');
                 if (c.statusBrain) statusHtml += '🧠';
 
                 let hpDisplayHtml = `
@@ -671,8 +766,7 @@
             // Update Status
             const statusContainer = card.querySelector('.status-container');
             if (statusContainer) {
-                let statusHtml = '';
-                if (c.statusSpiral) statusHtml += '🌀';
+                let statusHtml = (c.conditions || []).join('');
                 if (c.statusBrain) statusHtml += '🧠';
                 statusContainer.innerHTML = statusHtml;
             }
@@ -746,6 +840,7 @@
             const index = combatants.findIndex(c => c.id === selectedId);
             if (index !== -1) {
                 const oldHP = combatants[index].hpCurrent;
+                let triggerConcentration = false;
                 
                 if (isHealing) {
                     combatants[index].hpCurrent = Math.min(combatants[index].hpMax, combatants[index].hpCurrent + value);
@@ -753,7 +848,11 @@
                     combatants[index].hpCurrent = Math.max(0, combatants[index].hpCurrent - value);
                     // Lógica do Teste de Concentração
                     if (combatants[index].statusBrain && value > 0) {
-                        showToast(`🧠 Teste de Concentração!`);
+                        if (combatants[index].hpCurrent <= 0) {
+                            combatants[index].statusBrain = false; // Perde ao morrer/cair
+                        } else {
+                            triggerConcentration = true;
+                        }
                     }
                 }
                 
@@ -769,7 +868,29 @@
                 }
                 
                 clearDisplay();
+
+                if (triggerConcentration) {
+                    askConcentration(combatants[index].id);
+                }
             }
+        }
+
+        function askConcentration(id) {
+            concentrationTargetId = id;
+            document.getElementById('concentrationModal').style.display = 'flex';
+        }
+
+        function answerConcentration(passed) {
+            document.getElementById('concentrationModal').style.display = 'none';
+            if (!passed && concentrationTargetId) {
+                const index = combatants.findIndex(c => c.id === concentrationTargetId);
+                if (index !== -1) {
+                    combatants[index].statusBrain = false;
+                    if (combatants[index].type === 'player') savePlayersToStorage();
+                    updateCardTargeted(combatants[index]);
+                }
+            }
+            concentrationTargetId = null;
         }
 
         function startInitPress(event) {
