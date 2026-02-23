@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dnd-tracker-v1';
+const CACHE_NAME = 'dnd-tracker-v4-6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
