@@ -17,10 +17,10 @@
             font-family: 'Inter', sans-serif;
             background-color: #0f172a;
             color: #f1f5f9;
-            overscroll-behavior-y: none; /* Bloqueia o pull-to-refresh na raiz */
+            overscroll-behavior-y: none;
             height: 100vh;
-            height: 100dvh; /* Melhor adaptação para mobile */
-            overflow: hidden; /* Trava a rolagem da página inteira */
+            height: 100dvh;
+            overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
         }
@@ -29,7 +29,7 @@
             flex-grow: 1;
             overflow-y: auto;
             scroll-behavior: smooth;
-            overscroll-behavior-y: contain; /* Permite rolar apenas os cards, sem afetar o fundo */
+            overscroll-behavior-y: contain;
         }
 
         .card-selected {
@@ -444,6 +444,13 @@
 
         function sortCombatants() {
             combatants.sort((a, b) => {
+                const aEliminated = a.type === 'monster' && a.hpCurrent <= 0;
+                const bEliminated = b.type === 'monster' && b.hpCurrent <= 0;
+
+                // Move os monstros eliminados para o final da lista
+                if (aEliminated && !bEliminated) return 1;
+                if (!aEliminated && bEliminated) return -1;
+
                 if (b.initiative !== a.initiative) return b.initiative - a.initiative;
                 if (a.type === 'player' && b.type === 'monster') return -1;
                 if (a.type === 'monster' && b.type === 'player') return 1;
@@ -460,12 +467,34 @@
                 return;
             }
 
+            let printedDivider = false;
+
             combatants.forEach((c) => {
+                const isEliminated = c.type === 'monster' && c.hpCurrent <= 0;
+
+                // Adiciona o separador "Eliminados" antes do primeiro monstro morto
+                if (isEliminated && !printedDivider) {
+                    const divider = document.createElement('div');
+                    divider.className = "flex items-center gap-4 my-4";
+                    divider.innerHTML = `
+                        <div class="h-px bg-slate-700 flex-1"></div>
+                        <span class="text-slate-500 text-xs font-bold uppercase tracking-widest">Eliminados</span>
+                        <div class="h-px bg-slate-700 flex-1"></div>
+                    `;
+                    container.appendChild(divider);
+                    printedDivider = true;
+                }
+
                 const card = document.createElement('div');
                 card.id = `card-${c.id}`;
+                
+                // Estilo mais apagado para monstros eliminados
+                const opacityClass = isEliminated ? 'opacity-50 grayscale' : '';
+
                 card.className = `combat-card bg-slate-800/40 border border-slate-700 p-0 px-2 rounded-2xl flex items-center justify-between cursor-pointer transition-all relative overflow-hidden
                     ${selectedId === c.id ? 'card-selected' : ''} 
-                    ${activeTurnId === c.id ? 'active-turn' : ''}`;
+                    ${activeTurnId === c.id && !isEliminated ? 'active-turn' : ''}
+                    ${opacityClass}`;
                 
                 card.onclick = () => { if (!deleteVisibleId) selectCombatant(c.id, c.name); };
                 card.onmousedown = () => startPress(c.id);
@@ -497,9 +526,19 @@
                 if (c.statusSpiral) statusHtml += '🌀';
                 if (c.statusBrain) statusHtml += '🧠';
 
+                // Renderiza a Caveira se eliminado, caso contrário o HP normal
+                let hpDisplayHtml = `
+                    <div class="text-2xl font-bold leading-none ${hpColor}">${c.hpCurrent}/${c.hpMax}</div>
+                    <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider leading-none mt-1">HP</div>
+                `;
+                
+                if (isEliminated) {
+                    hpDisplayHtml = `<div class="text-3xl leading-none pt-1">💀</div>`;
+                }
+
                 card.innerHTML += `
                     <div class="flex items-center gap-2">
-                        <div class="${activeTurnId === c.id ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300'} font-bold w-10 h-10 flex items-center justify-center rounded-full text-lg shrink-0 my-1">
+                        <div class="${activeTurnId === c.id && !isEliminated ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300'} font-bold w-10 h-10 flex items-center justify-center rounded-full text-lg shrink-0 my-1">
                             ${c.initiative}
                         </div>
                         <div class="py-1">
@@ -509,9 +548,8 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="text-2xl flex gap-1">${statusHtml}</div>
-                        <div class="text-center py-1">
-                            <div class="text-2xl font-bold leading-none ${hpColor}">${c.hpCurrent}/${c.hpMax}</div>
-                            <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider leading-none mt-1">HP</div>
+                        <div class="text-center py-1 w-14">
+                            ${hpDisplayHtml}
                         </div>
                     </div>
                 `;
@@ -535,14 +573,25 @@
             if (combatants.length === 0) return;
             
             let currentIndex = combatants.findIndex(c => c.id === activeTurnId);
-            let nextIndex = currentIndex + 1;
+            let nextIndex = currentIndex;
+            let loopGuard = 0;
+            let incrementedRound = false;
             
-            if (nextIndex >= combatants.length || currentIndex === -1) { 
-                nextIndex = 0; 
-                if (currentIndex !== -1) round++; 
-            }
+            // Avança até encontrar alguém que não seja um monstro eliminado
+            do {
+                nextIndex++;
+                if (nextIndex >= combatants.length || currentIndex === -1) { 
+                    nextIndex = 0; 
+                    if (currentIndex !== -1 && !incrementedRound) { 
+                        round++; 
+                        incrementedRound = true;
+                    }
+                }
+                loopGuard++;
+                if (loopGuard > combatants.length) break; // Previne loop infinito se todos morrerem
+            } while (combatants[nextIndex] && combatants[nextIndex].type === 'monster' && combatants[nextIndex].hpCurrent <= 0);
             
-            activeTurnId = combatants[nextIndex].id;
+            activeTurnId = combatants[nextIndex] ? combatants[nextIndex].id : null;
             deleteVisibleId = null;
             renderList(true);
         }
@@ -567,6 +616,8 @@
                 
                 if (combatants[index].type === 'player') savePlayersToStorage(); 
                 
+                // Reordena imediatamente para enviar eliminados pro final (ou trazê-los de volta)
+                sortCombatants(); 
                 renderList(false);
                 clearDisplay();
             }
