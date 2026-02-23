@@ -2,131 +2,124 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>D&D Combat Tracker</title>
     
-    <!-- Configurações PWA (Aplicativo Offline) -->
+    <!-- Configurações PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/188/188987.png">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/5903/5903491.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0f172a;
             color: #f1f5f9;
-            overscroll-behavior: none;
+            overscroll-behavior-y: contain;
             height: 100vh;
-            user-select: none;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            margin: 0;
         }
 
         .combat-list {
-            flex-grow: 1;
+            flex: 1;
             overflow-y: auto;
-            scroll-behavior: smooth;
+            overscroll-behavior-y: contain;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .combat-card {
+            transition: all 0.2s ease;
         }
 
         .card-selected {
-            border: 2px solid #3b82f6 !important;
-            background-color: #1e293b !important;
+            border-color: #3b82f6 !important;
+            background-color: rgba(30, 41, 59, 0.8) !important;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
         }
 
         .active-turn {
-            border-left: 6px solid #fbbf24 !important;
-            background-color: #1e293b !important;
+            border-left: 4px solid #f59e0b !important;
         }
 
-        .combat-list::-webkit-scrollbar { width: 4px; }
-        .combat-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .btn-numpad {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1.25rem;
+            height: 54px;
+            transition: all 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-numpad:active {
+            background: #334155;
+            transform: scale(0.95);
+        }
+
+        .btn-control {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
 
         .numpad-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
+            gap: 8px;
         }
 
-        .btn-numpad {
-            background-color: #334155;
-            padding: 10px;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.2s;
-        }
-
-        .btn-control {
-            background-color: #1e293b;
-            border: 1px solid #334155;
-            padding: 10px;
-            border-radius: 12px;
-            font-size: 1.25rem;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .btn-numpad:active, .btn-control:active { transform: scale(0.95); background-color: #475569; }
-
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-            padding: 20px;
-        }
-
-        input {
-            background: #1e293b;
-            border: 1px solid #334155;
-            color: white;
-            padding: 8px;
-            border-radius: 8px;
-            width: 100%;
-        }
-
-        .delete-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(127, 29, 29, 0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: inherit;
-            z-index: 10;
+        #modalOverlay {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
         }
     </style>
 </head>
-<body class="flex flex-col">
+<body>
 
-    <!-- Lista de Cards (Superior) -->
+    <!-- Cabeçalho -->
+    <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center shrink-0">
+        <h1 class="text-xl font-bold text-slate-200">Combat Tracker <span class="text-xs text-slate-500 font-normal">v3.5</span></h1>
+        <div class="flex gap-2">
+            <button onclick="sortInitiative()" class="text-xs bg-slate-800 px-3 py-1 rounded-full border border-slate-700 font-bold text-slate-400">ORDENAR</button>
+        </div>
+    </header>
+
+    <!-- Lista de Cards -->
     <main class="combat-list p-4 space-y-3" id="combatList">
-        <!-- Cards gerados via JS -->
+        <!-- Gerado via JS -->
     </main>
 
     <!-- Console Inferior -->
     <footer class="bg-slate-900 border-t border-slate-800 py-4 px-0 shrink-0">
         <div class="max-w-xl mx-auto flex gap-4">
             
-            <!-- Coluna 1: Controles e Rodada -->
+            <!-- Coluna 1: Controles -->
             <div class="flex flex-col gap-2 w-24 shrink-0 justify-between py-1">
                 <div class="text-center">
                     <p class="text-[10px] text-slate-500 uppercase font-bold tracking-widest leading-none">Rodada</p>
                     <p id="roundCounter" class="text-xl font-bold text-slate-200">1</p>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="openModal('player')" class="btn-control hover:bg-blue-900/40 border-blue-900/50" title="Add Jogador">🧙‍♂️</button>
-                    <button onclick="openModal('monster')" class="btn-control hover:bg-slate-700" title="Add Monstro">🧌</button>
-                    <button onclick="endCombat()" onmousedown="startEndCombatPress(event)" onmouseup="cancelEndCombatPress(event)" onmouseleave="cancelEndCombatPress(event)" ontouchstart="startEndCombatPress(event)" ontouchend="cancelEndCombatPress(event)" class="btn-control hover:bg-red-900/40 border-red-900/50" title="Terminar Combate (Segure 3s para apagar tudo)">❌</button>
-                    <button onclick="nextTurn()" class="btn-control hover:bg-amber-900/40 border-amber-900/50" title="Próximo">⏩</button>
-                    <button onclick="toggleSpiralStatus()" class="btn-control hover:bg-slate-700" title="Status Espiral">🌀</button>
-                    <button onclick="toggleBrainStatus()" class="btn-control hover:bg-slate-700" title="Status Mental">🧠</button>
+                    <button onclick="openModal('player')" class="btn-control hover:bg-blue-900/40 border-blue-900/50">🧙‍♂️</button>
+                    <button onclick="openModal('monster')" class="btn-control hover:bg-slate-700">🧌</button>
+                    <button onclick="endCombat()" onmousedown="startEndCombatPress(event)" onmouseup="cancelEndCombatPress(event)" onmouseleave="cancelEndCombatPress(event)" ontouchstart="startEndCombatPress(event)" ontouchend="cancelEndCombatPress(event)" class="btn-control hover:bg-red-900/40 border-red-900/50">❌</button>
+                    <button onclick="nextTurn()" class="btn-control hover:bg-amber-900/40 border-amber-900/50">⏩</button>
+                    <button onclick="toggleSpiralStatus()" class="btn-control hover:bg-slate-700">🌀</button>
+                    <button onclick="toggleBrainStatus()" class="btn-control hover:bg-slate-700">🧠</button>
                 </div>
             </div>
 
@@ -149,79 +142,45 @@
                     <button class="btn-numpad" onclick="addDigit('1')">1</button>
                     <button class="btn-numpad" onclick="addDigit('2')">2</button>
                     <button class="btn-numpad" onclick="addDigit('3')">3</button>
-                    <button class="btn-numpad text-red-400" onclick="clearDisplay()">C</button>
+                    <button class="btn-numpad text-red-400" onclick="applyNumpad('damage')">DANO</button>
                     <button class="btn-numpad" onclick="addDigit('0')">0</button>
-                    <button class="btn-numpad text-slate-500" onclick="popDigit()">←</button>
+                    <button class="btn-numpad text-green-400" onclick="applyNumpad('heal')">CURA</button>
                 </div>
-            </div>
-
-            <!-- Coluna 3: Ações de HP e Iniciativa -->
-            <div class="flex flex-col gap-2 w-16 shrink-0 py-1">
-                <!-- Botão de Cura -->
-                <button onclick="applyHP(true)" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl flex items-center justify-center shadow-lg" title="Curar">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                </button>
-                <!-- Botão de Dano alterado para ☠️ -->
-                <button onclick="applyHP(false)" class="flex-1 bg-red-600 hover:bg-red-500 text-white rounded-xl flex items-center justify-center shadow-lg text-2xl" title="Dano">
-                    ☠️
-                </button>
-                <!-- Botão de Iniciativa -->
-                <button onclick="applyInitiative()" onmousedown="startInitPress(event)" onmouseup="cancelInitPress(event)" onmouseleave="cancelInitPress(event)" ontouchstart="startInitPress(event)" ontouchend="cancelInitPress(event)" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg" title="Definir Iniciativa (Segure para rolar monstros)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M13 10h7l-9 11v-7H4l9-11v7z"/></svg>
-                </button>
             </div>
         </div>
     </footer>
 
-    <!-- Modais -->
-    <div id="entityModal" class="modal">
-        <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-md border border-slate-700">
-            <h2 id="modalTitle" class="text-xl font-bold mb-4">Adicionar Entidade</h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="col-span-2">
-                    <label class="text-xs text-slate-500 font-bold uppercase">Nome</label>
-                    <input type="text" id="nameInp" placeholder="Ex: Grog ou Goblin">
+    <!-- Modal Adicionar -->
+    <div id="modalOverlay" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4">Adicionar</h2>
+            <div class="space-y-4">
+                <input type="text" id="inName" placeholder="Nome" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-lg outline-none focus:border-blue-500">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="inIni" placeholder="Iniciativa" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-lg outline-none">
+                    <input type="number" id="inHP" placeholder="HP Máximo" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-lg outline-none">
                 </div>
-                <div>
-                    <label class="text-xs text-slate-500 font-bold uppercase">Iniciativa</label>
-                    <input type="number" id="initInp" placeholder="0">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-500 font-bold uppercase">HP Max</label>
-                    <input type="number" id="hpInp" placeholder="10">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-500 font-bold uppercase">CA</label>
-                    <input type="number" id="caInp" placeholder="10">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-500 font-bold uppercase">Ataque/Dano</label>
-                    <input type="text" id="atkInp" placeholder="+5 / 1d8">
+                <div class="grid grid-cols-2 gap-4">
+                    <input type="number" id="inCA" placeholder="CA" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-lg outline-none">
+                    <input type="text" id="inAtk" placeholder="Ataque/Dano" class="bg-slate-900 border border-slate-700 rounded-xl p-3 text-lg outline-none">
                 </div>
             </div>
-            <div class="flex gap-2 mt-6">
-                <button onclick="closeModal()" class="flex-1 p-2 rounded-lg bg-slate-700 font-bold">Cancelar</button>
-                <button onclick="saveEntity()" class="flex-1 p-2 rounded-lg bg-blue-600 font-bold">Salvar</button>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeModal()" class="flex-1 py-3 bg-slate-700 rounded-xl font-bold">Cancelar</button>
+                <button onclick="addCombatant()" class="flex-1 py-3 bg-blue-600 rounded-xl font-bold">Adicionar</button>
             </div>
         </div>
     </div>
 
     <script>
         let combatants = [];
-        let activeTurnIndex = 0;
         let selectedId = null;
+        let activeTurnIndex = 0;
         let round = 1;
+        let numpadValue = "0";
+        let currentModalType = 'player';
         let monsterCounter = 1;
-        let currentInput = "0";
         let lastMonsterData = { hp: "", ca: "", atk: "" };
-
-        let pressTimer;
-        let deleteVisibleId = null;
-        let editingId = null; // Nova variável para controle de edição
-
-        let initPressTimer;
-        let didInitLongPress = false;
-
         let endCombatPressTimer;
         let didEndCombatLongPress = false;
 
@@ -229,273 +188,35 @@
             const savedPlayers = localStorage.getItem('dnd_players');
             if (savedPlayers) {
                 combatants = JSON.parse(savedPlayers);
-                renderList();
+                renderList(true);
+            }
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log(err));
             }
         };
 
-        function openModal(type) {
-            const nameInput = document.getElementById('nameInp');
-            const hpInp = document.getElementById('hpInp');
-            const caInp = document.getElementById('caInp');
-            const atkInp = document.getElementById('atkInp');
-            
-            editingId = null; // Reseta o ID de edição ao criar um novo
-            modalType = type;
-            document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador' : 'Novo Monstro';
-            document.getElementById('initInp').value = "";
-
-            if (type === 'monster') {
-                nameInput.value = "Inimigo " + monsterCounter;
-                hpInp.value = lastMonsterData.hp;
-                caInp.value = lastMonsterData.ca;
-                atkInp.value = lastMonsterData.atk;
-            } else {
-                nameInput.value = "";
-                hpInp.value = "";
-                caInp.value = "";
-                atkInp.value = "";
-            }
-            document.getElementById('entityModal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('entityModal').style.display = 'none';
-        }
-
-        function saveEntity() {
-            const name = document.getElementById('nameInp').value;
-            const init = parseInt(document.getElementById('initInp').value) || 0;
-            const hp = parseInt(document.getElementById('hpInp').value) || 1;
-            const ca = parseInt(document.getElementById('caInp').value) || 10;
-            const atk = document.getElementById('atkInp').value || "-";
-
-            if (!name) return;
-
-            // Se estiver editando um combatente existente
-            if (editingId) {
-                const index = combatants.findIndex(c => c.id === editingId);
-                if (index !== -1) {
-                    combatants[index].name = name;
-                    combatants[index].initiative = init;
-                    combatants[index].hpMax = hp;
-                    // Ajusta o HP atual caso o novo HP máximo seja menor
-                    if (combatants[index].hpCurrent > hp) combatants[index].hpCurrent = hp;
-                    combatants[index].ca = ca;
-                    combatants[index].atkInfo = atk;
-                    
-                    if (combatants[index].type === 'player') savePlayersToStorage();
-                }
-                editingId = null;
-            } 
-            // Se for um novo combatente
-            else {
-                const newEntity = {
-                    id: Date.now(),
-                    name,
-                    initiative: init,
-                    hpMax: hp,
-                    hpCurrent: hp,
-                    ca,
-                    atkInfo: atk,
-                    type: modalType,
-                    statusBrain: false,
-                    statusSpiral: false
-                };
-
-                combatants.push(newEntity);
-                if (modalType === 'monster') {
-                    monsterCounter++;
-                    lastMonsterData = { hp, ca, atk };
-                } else {
-                    savePlayersToStorage();
-                }
-            }
-
-            sortCombatants();
-            closeModal();
-            renderList(true);
-        }
-
-        function editCombatant(event, id) {
-            event.stopPropagation();
-            cancelDeleteMode(event);
-            
-            const c = combatants.find(c => c.id === id);
-            if (!c) return;
-
-            editingId = c.id;
-            modalType = c.type;
-            
-            document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro');
-            document.getElementById('nameInp').value = c.name;
-            document.getElementById('initInp').value = c.initiative;
-            document.getElementById('hpInp').value = c.hpMax;
-            document.getElementById('caInp').value = c.ca;
-            document.getElementById('atkInp').value = c.atkInfo;
-            
-            document.getElementById('entityModal').style.display = 'flex';
-        }
-
-        function startPress(id) {
-            if (deleteVisibleId) return;
-            pressTimer = window.setTimeout(() => {
-                deleteVisibleId = id;
-                renderList();
-            }, 4000); // Aumentado para 4 segundos
-        }
-
-        function cancelPress() {
-            window.clearTimeout(pressTimer);
-        }
-
-        function removeCombatant(event, id) {
-            event.stopPropagation();
-            const index = combatants.findIndex(c => c.id === id);
-            if (index === -1) return;
-            const entity = combatants[index];
-            if (index < activeTurnIndex) activeTurnIndex--;
-            else if (index === activeTurnIndex && activeTurnIndex === combatants.length - 1) activeTurnIndex = 0;
-            if (selectedId === id) {
-                selectedId = null;
-                document.getElementById('targetName').innerText = "Nenhum";
-            }
-            combatants.splice(index, 1);
-            if (entity.type === 'player') savePlayersToStorage();
-            deleteVisibleId = null;
-            renderList();
-        }
-
-        function cancelDeleteMode(event) {
-            event.stopPropagation();
-            deleteVisibleId = null;
-            renderList();
-        }
-
-        function toggleBrainStatus() {
-            if (!selectedId) return;
-            const index = combatants.findIndex(c => c.id === selectedId);
-            if (index !== -1) {
-                combatants[index].statusBrain = !combatants[index].statusBrain;
-                if (combatants[index].type === 'player') savePlayersToStorage();
-                renderList(false);
-            }
-        }
-
-        function toggleSpiralStatus() {
-            if (!selectedId) return;
-            const index = combatants.findIndex(c => c.id === selectedId);
-            if (index !== -1) {
-                combatants[index].statusSpiral = !combatants[index].statusSpiral;
-                if (combatants[index].type === 'player') savePlayersToStorage();
-                renderList(false);
-            }
-        }
-
-        function startEndCombatPress(event) {
-            didEndCombatLongPress = false;
-            endCombatPressTimer = window.setTimeout(() => {
-                didEndCombatLongPress = true;
-                hardResetCombat();
-            }, 3000); // Espera 3 segundos
-        }
-
-        function cancelEndCombatPress(event) {
-            window.clearTimeout(endCombatPressTimer);
-        }
-
-        function hardResetCombat() {
-            combatants = [];
-            savePlayersToStorage();
-            activeTurnIndex = 0;
-            round = 1;
-            monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "" };
-            selectedId = null;
-            deleteVisibleId = null;
-            document.getElementById('targetName').innerText = "Nenhum";
-            renderList(true);
-        }
-
-        function endCombat() {
-            if (didEndCombatLongPress) {
-                didEndCombatLongPress = false;
-                return;
-            }
-
-            combatants = combatants.filter(c => c.type === 'player');
-            combatants.forEach(c => {
-                c.initiative = 0;
-                c.statusBrain = false;
-                c.statusSpiral = false;
-            });
-            activeTurnIndex = 0;
-            round = 1;
-            monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "" };
-            selectedId = null;
-            deleteVisibleId = null;
-            document.getElementById('targetName').innerText = "Nenhum";
-            sortCombatants();
-            renderList(true);
-        }
-
-        function sortCombatants() {
-            combatants.sort((a, b) => {
-                if (b.initiative !== a.initiative) return b.initiative - a.initiative;
-                if (a.type === 'player' && b.type === 'monster') return -1;
-                if (a.type === 'monster' && b.type === 'player') return 1;
-                return 0;
-            });
-        }
-
-        function renderList(shouldScroll = false) {
+        function renderList(shouldResort = false) {
             const container = document.getElementById('combatList');
-            container.innerHTML = "";
-
-            if (combatants.length === 0) {
-                container.innerHTML = `<div class="text-slate-600 text-center mt-10">Lista vazia.</div>`;
-                return;
-            }
-
+            container.innerHTML = '';
+            
             combatants.forEach((c, index) => {
                 const card = document.createElement('div');
                 card.id = `card-${c.id}`;
+                const hpPercent = (c.hpCurrent / c.hpMax) * 100;
+                const hpColor = hpPercent > 50 ? 'text-green-400' : hpPercent > 20 ? 'text-amber-400' : 'text-red-500';
+
                 card.className = `combat-card bg-slate-800/40 border border-slate-700 p-0 px-2 rounded-2xl flex items-center justify-between cursor-pointer transition-all relative overflow-hidden
                     ${selectedId === c.id ? 'card-selected' : ''} 
                     ${activeTurnIndex === index ? 'active-turn' : ''}`;
                 
-                card.onclick = () => { if (!deleteVisibleId) selectCombatant(c.id, c.name); };
-                card.onmousedown = () => startPress(c.id);
-                card.onmouseup = cancelPress;
-                card.onmouseleave = cancelPress;
-                card.ontouchstart = () => startPress(c.id);
-                card.ontouchend = cancelPress;
+                card.onclick = () => selectCombatant(c.id, c.name);
 
-                if (deleteVisibleId === c.id) {
-                    const overlay = document.createElement('div');
-                    overlay.className = "delete-overlay gap-6";
-                    overlay.innerHTML = `
-                        <button onclick="cancelDeleteMode(event)" class="bg-slate-800 p-3 rounded-full text-slate-300">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        </button>
-                        <!-- Novo botão de Editar (Azul) -->
-                        <button onclick="editCombatant(event, ${c.id})" class="bg-blue-600 p-4 rounded-full text-white shadow-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        </button>
-                        <button onclick="removeCombatant(event, ${c.id})" class="bg-white p-4 rounded-full text-red-700 shadow-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18m-2 0v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6m3 0V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2m-6 9 6-6m-6 0 6 6"/></svg>
-                        </button>
-                    `;
-                    card.appendChild(overlay);
-                }
-
-                const hpColor = c.type === 'monster' ? 'text-red-500' : 'text-emerald-400';
-                
                 let statusHtml = '';
                 if (c.statusSpiral) statusHtml += '🌀';
                 if (c.statusBrain) statusHtml += '🧠';
 
-                card.innerHTML += `
+                card.innerHTML = `
                     <div class="flex items-center gap-2">
                         <div class="${activeTurnIndex === index ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300'} font-bold w-10 h-10 flex items-center justify-center rounded-full text-lg shrink-0 my-1">
                             ${c.initiative}
@@ -517,10 +238,6 @@
             });
 
             document.getElementById('roundCounter').innerText = round;
-            if (shouldScroll) {
-                const activeCard = container.querySelector('.active-turn');
-                if (activeCard) activeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
         }
 
         function selectCombatant(id, name) {
@@ -529,94 +246,138 @@
             renderList(false);
         }
 
+        function addDigit(digit) {
+            if (numpadValue === "0") numpadValue = digit;
+            else numpadValue += digit;
+            document.getElementById('numpadDisplay').innerText = numpadValue;
+        }
+
+        function applyNumpad(type) {
+            if (!selectedId) return;
+            const val = parseInt(numpadValue);
+            const index = combatants.findIndex(c => c.id === selectedId);
+            if (index === -1) return;
+
+            if (type === 'damage') combatants[index].hpCurrent = Math.max(0, combatants[index].hpCurrent - val);
+            if (type === 'heal') combatants[index].hpCurrent = Math.min(combatants[index].hpMax, combatants[index].hpCurrent + val);
+
+            numpadValue = "0";
+            document.getElementById('numpadDisplay').innerText = "0";
+            renderList(false);
+        }
+
         function nextTurn() {
-            if (combatants.length === 0) return;
             activeTurnIndex++;
-            if (activeTurnIndex >= combatants.length) { activeTurnIndex = 0; round++; }
-            deleteVisibleId = null;
+            if (activeTurnIndex >= combatants.length) {
+                activeTurnIndex = 0;
+                round++;
+            }
+            if (combatants.length > 0) {
+                selectCombatant(combatants[activeTurnIndex].id, combatants[activeTurnIndex].name);
+                document.getElementById(`card-${combatants[activeTurnIndex].id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            renderList(false);
+        }
+
+        function openModal(type) {
+            currentModalType = type;
+            document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador' : 'Novo Monstro';
+            document.getElementById('inName').value = type === 'player' ? '' : `Monstro ${monsterCounter}`;
+            document.getElementById('inHP').value = type === 'player' ? '' : lastMonsterData.hp;
+            document.getElementById('inCA').value = type === 'player' ? '' : lastMonsterData.ca;
+            document.getElementById('inAtk').value = type === 'player' ? '' : lastMonsterData.atk;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.getElementById('inName').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+        }
+
+        function addCombatant() {
+            const name = document.getElementById('inName').value;
+            const hp = parseInt(document.getElementById('inHP').value) || 10;
+            const ini = parseInt(document.getElementById('inIni').value) || 0;
+            const ca = document.getElementById('inCA').value || "10";
+            const atk = document.getElementById('inAtk').value || "---";
+
+            const newItem = {
+                id: Date.now(),
+                name,
+                type: currentModalType,
+                hpMax: hp,
+                hpCurrent: hp,
+                initiative: ini,
+                ca: ca,
+                atkInfo: atk,
+                statusSpiral: false,
+                statusBrain: false
+            };
+
+            if (currentModalType === 'monster') {
+                monsterCounter++;
+                lastMonsterData = { hp, ca, atk };
+            }
+
+            combatants.push(newItem);
+            if (currentModalType === 'player') savePlayersToStorage();
+            closeModal();
             renderList(true);
         }
 
-        function addDigit(digit) {
-            if (currentInput === "0") currentInput = digit;
-            else if (currentInput.length < 4) currentInput += digit;
-            updateNumpad();
+        function sortInitiative() {
+            combatants.sort((a, b) => b.initiative - a.initiative);
+            activeTurnIndex = 0;
+            renderList(false);
         }
 
-        function clearDisplay() { currentInput = "0"; updateNumpad(); }
-        function popDigit() { currentInput = currentInput.length > 1 ? currentInput.slice(0, -1) : "0"; updateNumpad(); }
-        function updateNumpad() { document.getElementById('numpadDisplay').innerText = currentInput; }
-
-        function applyHP(isHealing) {
+        function toggleSpiralStatus() {
             if (!selectedId) return;
-            const value = parseInt(currentInput);
-            const index = combatants.findIndex(c => c.id === selectedId);
-            if (index !== -1) {
-                if (isHealing) combatants[index].hpCurrent = Math.min(combatants[index].hpMax, combatants[index].hpCurrent + value);
-                else combatants[index].hpCurrent = Math.max(0, combatants[index].hpCurrent - value);
-                if (combatants[index].type === 'player') savePlayersToStorage();
-                renderList(false);
-                clearDisplay();
-            }
+            const idx = combatants.findIndex(c => c.id === selectedId);
+            combatants[idx].statusSpiral = !combatants[idx].statusSpiral;
+            renderList(false);
         }
 
-        function startInitPress(event) {
-            didInitLongPress = false;
-            initPressTimer = window.setTimeout(() => {
-                didInitLongPress = true;
-                rollMonsterInitiatives();
-            }, 2000); // Espera 2 segundos
-        }
-
-        function cancelInitPress(event) {
-            window.clearTimeout(initPressTimer);
-        }
-
-        function rollMonsterInitiatives() {
-            let changed = false;
-            combatants.forEach(c => {
-                if (c.type === 'monster') {
-                    c.initiative = Math.floor(Math.random() * 20) + 1;
-                    changed = true;
-                }
-            });
-            
-            if (changed) {
-                sortCombatants();
-                renderList(true);
-                clearDisplay();
-            }
-        }
-
-        function applyInitiative() {
-            // Se a ação foi desencadeada por um "long press", ignora o clique normal
-            if (didInitLongPress) {
-                didInitLongPress = false;
-                return;
-            }
-
+        function toggleBrainStatus() {
             if (!selectedId) return;
-            const value = parseInt(currentInput);
-            const index = combatants.findIndex(c => c.id === selectedId);
-            if (index !== -1) {
-                combatants[index].initiative = value;
-                sortCombatants();
-                renderList(true);
-                clearDisplay();
-            }
+            const idx = combatants.findIndex(c => c.id === selectedId);
+            combatants[idx].statusBrain = !combatants[idx].statusBrain;
+            renderList(false);
+        }
+
+        function startEndCombatPress(e) {
+            didEndCombatLongPress = false;
+            endCombatPressTimer = setTimeout(() => {
+                didEndCombatLongPress = true;
+                hardResetCombat();
+            }, 3000);
+        }
+
+        function cancelEndCombatPress() {
+            clearTimeout(endCombatPressTimer);
+        }
+
+        function hardResetCombat() {
+            combatants = [];
+            localStorage.removeItem('dnd_players');
+            round = 1;
+            activeTurnIndex = 0;
+            monsterCounter = 1;
+            renderList(true);
+        }
+
+        function endCombat() {
+            if (didEndCombatLongPress) return;
+            combatants = combatants.filter(c => c.type === 'player');
+            combatants.forEach(c => c.initiative = 0);
+            round = 1;
+            activeTurnIndex = 0;
+            renderList(true);
         }
 
         function savePlayersToStorage() {
-            localStorage.setItem('dnd_players', JSON.stringify(combatants.filter(c => c.type === 'player')));
-        }
-
-        // Registo do Service Worker para PWA (Funcionamento Offline)
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(() => console.log('Service Worker Registado! O Tracker agora funciona offline.'))
-                    .catch((err) => console.log('Erro no registo do Service Worker:', err));
-            });
+            const players = combatants.filter(c => c.type === 'player');
+            localStorage.setItem('dnd_players', JSON.stringify(players));
         }
     </script>
 </body>
