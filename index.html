@@ -13,19 +13,23 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         
-        body {
+        html, body {
             font-family: 'Inter', sans-serif;
             background-color: #0f172a;
             color: #f1f5f9;
-            overscroll-behavior-y: contain; /* Evita o recarregamento ao puxar para baixo */
+            overscroll-behavior-y: none; /* Bloqueia o pull-to-refresh na raiz */
             height: 100vh;
+            height: 100dvh; /* Melhor adaptação para mobile */
+            overflow: hidden; /* Trava a rolagem da página inteira */
             user-select: none;
+            -webkit-user-select: none;
         }
 
         .combat-list {
             flex-grow: 1;
             overflow-y: auto;
             scroll-behavior: smooth;
+            overscroll-behavior-y: contain; /* Permite rolar apenas os cards, sem afetar o fundo */
         }
 
         .card-selected {
@@ -196,7 +200,7 @@
 
     <script>
         let combatants = [];
-        let activeTurnId = null; // Rastreamento por ID
+        let activeTurnId = null; 
         let selectedId = null;
         let round = 1;
         let monsterCounter = 1;
@@ -289,7 +293,7 @@
                 };
 
                 combatants.push(newEntity);
-                if (combatants.length === 1) activeTurnId = newEntity.id; // Define o primeiro turno
+                if (combatants.length === 1) activeTurnId = newEntity.id; 
 
                 if (modalType === 'monster') {
                     monsterCounter++;
@@ -343,7 +347,6 @@
             
             const entity = combatants[index];
 
-            // Ajusta o turno atual caso seja deletado
             if (id === activeTurnId) {
                 let nextIndex = index + 1;
                 if (nextIndex >= combatants.length) nextIndex = 0;
@@ -421,12 +424,12 @@
             combatants = combatants.filter(c => c.type === 'player');
             combatants.forEach(c => {
                 c.initiative = 0;
-                c.hpCurrent = c.hpMax; // Restaura HP Completo
-                c.statusBrain = false; // Remove Status
-                c.statusSpiral = false; // Remove Status
+                c.hpCurrent = c.hpMax; 
+                c.statusBrain = false; 
+                c.statusSpiral = false; 
             });
             
-            savePlayersToStorage(); // Salva estado inicializado
+            savePlayersToStorage(); 
             
             activeTurnId = combatants.length > 0 ? combatants[0].id : null;
             round = 1;
@@ -444,7 +447,7 @@
                 if (b.initiative !== a.initiative) return b.initiative - a.initiative;
                 if (a.type === 'player' && b.type === 'monster') return -1;
                 if (a.type === 'monster' && b.type === 'player') return 1;
-                return a.id - b.id; // Desempate final para manter ordem consistente
+                return a.id - b.id; 
             });
         }
 
@@ -562,7 +565,7 @@
                 if (isHealing) combatants[index].hpCurrent = Math.min(combatants[index].hpMax, combatants[index].hpCurrent + value);
                 else combatants[index].hpCurrent = Math.max(0, combatants[index].hpCurrent - value);
                 
-                if (combatants[index].type === 'player') savePlayersToStorage(); // Salva alteração de HP
+                if (combatants[index].type === 'player') savePlayersToStorage(); 
                 
                 renderList(false);
                 clearDisplay();
@@ -609,7 +612,7 @@
             if (index !== -1) {
                 combatants[index].initiative = value;
                 
-                if (combatants[index].type === 'player') savePlayersToStorage(); // Salva alteração de Iniciativa
+                if (combatants[index].type === 'player') savePlayersToStorage(); 
                 
                 sortCombatants();
                 renderList(true);
