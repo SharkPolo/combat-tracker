@@ -254,8 +254,8 @@
                     <input type="text" id="typeAlignInp" placeholder="humanoide (qualquer), neutro">
                 </div>
                 <div class="col-span-2">
-                    <label class="text-xs text-slate-500 font-bold uppercase">Deslocamento (Speed)</label>
-                    <input type="text" id="speedInp" placeholder="9m, voo 12m">
+                    <label class="text-xs text-slate-500 font-bold uppercase">Deslocamento (Speed - Ex: 30 ft. ou 9m)</label>
+                    <input type="text" id="speedInp" placeholder="30 ft.">
                 </div>
 
                 <!-- Atributos base do 5eTools -->
@@ -370,8 +370,8 @@
         let monsterCounter = 1;
         let playerCounter = 1;
         let currentInput = "0";
-        let lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
-        let lastPlayerData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "humanoide (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
+        let lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro (qualquer)", speed: "30 ft.", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
+        let lastPlayerData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "humanoide (qualquer)", speed: "30 ft.", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
 
         let pressTimer;
         let startY = 0; 
@@ -411,7 +411,7 @@
                     if (!c.cr) c.cr = "1";
                     if (!c.size) c.size = "M";
                     if (!c.typeAlign) c.typeAlign = "criatura";
-                    if (!c.speed) c.speed = "9m";
+                    if (!c.speed) c.speed = "30 ft.";
                     if (!c.attributes) c.attributes = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
                 });
                 playerCounter = pCount + 1;
@@ -443,6 +443,33 @@
             list.addEventListener('touchend', handleCardPressEnd);
             list.addEventListener('click', handleListClick);
         };
+
+        // Converte o deslocamento (ex: "30 ft." ou "9m") para quantidade de quadrados ("6 qd")
+        function formatSpeedInSquares(speedStr) {
+            if (!speedStr) return '6 qd';
+            const raw = String(speedStr).trim();
+
+            // Pega o deslocamento principal antes da primeira vírgula
+            const mainPart = raw.split(',')[0].trim();
+
+            // Se estiver em metros (ex: "9m" ou "9 m"), divide por 1.5m por quadrado
+            const meterMatch = mainPart.match(/(\d+(?:[.,]\d+)?)\s*m\b/i);
+            if (meterMatch) {
+                const meters = parseFloat(meterMatch[1].replace(',', '.'));
+                const squares = Math.round(meters / 1.5);
+                return `${squares} qd`;
+            }
+
+            // Padrão 5eTools em feet (ex: "30 ft." ou "30"): divide por 5 feet por quadrado
+            const feetMatch = mainPart.match(/(\d+)/);
+            if (feetMatch) {
+                const feet = parseInt(feetMatch[1], 10);
+                const squares = Math.floor(feet / 5);
+                return `${squares} qd`;
+            }
+
+            return '6 qd';
+        }
 
         async function sync5eToolsDatabase(force = false) {
             const statusEl = document.getElementById('fiveToolsSyncStatus');
@@ -661,7 +688,7 @@
             showToast(qty > 1 ? `🧌 ${qty}x ${parsed.name} adicionados!` : `🧌 ${parsed.name} adicionado!`);
         }
 
-        // Conversor do formato JSON 5eTools para a ficha do app (CA numérica pura + Atk "+X/1dY+Z")
+        // Conversor do formato JSON 5eTools para a ficha do app
         function parse5eToolsMonster(raw) {
             const sizeMap = { T: 'T', S: 'S', M: 'M', L: 'G', H: 'H', G: 'C' };
             const rawSize = Array.isArray(raw.size) ? raw.size[0] : (raw.size || 'M');
@@ -697,7 +724,7 @@
                 else if (raw.hp.special) hpMax = parseInt(raw.hp.special) || 10;
             }
 
-            let speed = '9m';
+            let speed = '30 ft.';
             if (raw.speed && typeof raw.speed === 'object') {
                 speed = Object.entries(raw.speed)
                     .map(([k, v]) => {
@@ -898,7 +925,7 @@
             document.getElementById('detailCa').innerText = c.ca;
             document.getElementById('detailHp').innerText = c.hpCurrent !== undefined ? `${c.hpCurrent}/${c.hpMax}` : `${c.hpMax}`;
             document.getElementById('detailCr').innerText = c.cr || '1';
-            document.getElementById('detailSpeed').innerText = c.speed || '9m';
+            document.getElementById('detailSpeed').innerText = `${c.speed || '30 ft.'} (${formatSpeedInSquares(c.speed)})`;
 
             const attrs = c.attributes || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
             const getMod = (val) => {
@@ -952,7 +979,7 @@
             const cr = document.getElementById('crInp').value || "1";
             const size = document.getElementById('sizeInp').value || "M";
             const typeAlign = document.getElementById('typeAlignInp').value || "humanoide";
-            const speed = document.getElementById('speedInp').value || "9m";
+            const speed = document.getElementById('speedInp').value || "30 ft.";
             
             const attributes = {
                 str: parseInt(document.getElementById('attrStr').value) || 10,
@@ -1080,7 +1107,7 @@
             document.getElementById('crInp').value = c.cr || "1";
             document.getElementById('sizeInp').value = c.size || "M";
             document.getElementById('typeAlignInp').value = c.typeAlign || "";
-            document.getElementById('speedInp').value = c.speed || "9m";
+            document.getElementById('speedInp').value = c.speed || "30 ft.";
             
             const attr = c.attributes || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
             document.getElementById('attrStr').value = attr.str;
@@ -1223,7 +1250,7 @@
             activeTurnId = null;
             round = 1;
             monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
+            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "30 ft.", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
             selectedId = null;
             deleteVisibleId = null;
             document.getElementById('targetName').innerText = "Nenhum";
@@ -1251,7 +1278,7 @@
             activeTurnId = combatants.length > 0 ? combatants[0].id : null;
             round = 1;
             monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
+            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "30 ft.", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
             selectedId = null;
             deleteVisibleId = null;
             document.getElementById('targetName').innerText = "Nenhum";
@@ -1362,6 +1389,7 @@
                 }
 
                 const displayCa = String(c.ca).match(/\d+/)?.[0] || c.ca;
+                const displaySquares = formatSpeedInSquares(c.speed);
 
                 card.innerHTML += `
                     <div class="hp-bar absolute left-0 top-0 bottom-0 z-0 opacity-20 transition-all duration-500" style="width: ${pct}%; background-color: ${hpBarColor};"></div>
@@ -1375,7 +1403,7 @@
                                     <h3 class="font-bold text-lg leading-none truncate ${c.type === 'monster' ? 'text-red-400' : ''}">${c.name}</h3>
                                     <button data-id="${c.id}" class="detail-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-1.5 py-0.5 rounded font-mono border border-slate-600 shrink-0" title="Ver Ficha 5eTools">CR ${c.cr || '1'} 🔍</button>
                                 </div>
-                                <p class="text-slate-300 text-base font-semibold tracking-tight leading-none mt-1.5 truncate">CA: ${displayCa} | ${c.atkInfo}</p>
+                                <p class="text-slate-300 text-base font-semibold tracking-tight leading-none mt-1.5 truncate">CA: ${displayCa} | ${c.atkInfo} | ${displaySquares}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
