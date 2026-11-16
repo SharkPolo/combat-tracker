@@ -171,7 +171,7 @@
 
     <!-- Indicador discreto de deslize -->
     <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-1.5 flex justify-between items-center text-[11px] text-slate-400 shrink-0">
-        <span>D&D Combat Tracker <span class="text-slate-600">v5.2</span></span>
+        <span>D&D Combat Tracker <span class="text-slate-600">v5.3</span></span>
         <button onclick="openBestiaryDrawer()" class="flex items-center gap-1 text-amber-400 font-semibold hover:underline">
             <span>⬅️ Bestiário 5eTools</span>
         </button>
@@ -247,7 +247,7 @@
         </div>
 
         <div class="p-3 bg-slate-900 border-b border-slate-800 shrink-0">
-            <input type="text" id="bestiarySearchInp" oninput="renderBestiaryList()" placeholder="🔍 Buscar monstro importado..." class="text-sm">
+            <input type="text" id="bestiarySearchInp" oninput="renderBestiaryList()" placeholder="🔍 Buscar monstro salvo..." class="text-sm">
         </div>
 
         <div id="bestiaryList" class="drawer-list p-3 space-y-2"></div>
@@ -283,14 +283,29 @@
         </div>
     </div>
 
-    <!-- Modal Completo 5eTools (Cadastro/Edição Manual) -->
+    <!-- Modal Completo 5eTools (Cadastro/Edição + Busca Online 5eTools) -->
     <div id="entityModal" class="modal">
         <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
-            <h2 id="modalTitle" class="text-xl font-bold mb-4">Adicionar Entidade (5eTools)</h2>
+            <h2 id="modalTitle" class="text-xl font-bold mb-3">Adicionar Entidade (5eTools)</h2>
+
+            <!-- Caixa de Pesquisa Direta no 5eTools (Visível ao adicionar monstro) -->
+            <div id="fiveToolsSearchBox" class="mb-4 bg-slate-950 p-3 rounded-xl border border-amber-500/40">
+                <div class="flex justify-between items-center mb-1.5">
+                    <label class="text-[11px] text-amber-400 font-bold uppercase tracking-wider">🔎 Buscar no Bestiário 5eTools</label>
+                    <span id="fiveToolsSyncStatus" class="text-[10px] text-slate-400">Pronto</span>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="fiveToolsQueryInp" oninput="search5eToolsMonsters()" placeholder="Digite em inglês: Skeleton, Goblin, Orc, Dragon..." class="text-sm border-slate-700 focus:border-amber-400 outline-none">
+                    <button type="button" onclick="sync5eToolsDatabase(true)" class="px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs shrink-0" title="Sincronizar livros do 5eTools">🔄</button>
+                </div>
+                <!-- Lista de Resultados da Pesquisa -->
+                <div id="fiveToolsSearchResults" class="mt-2 max-h-40 overflow-y-auto space-y-1 hidden"></div>
+            </div>
+
             <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2">
                     <label class="text-xs text-slate-500 font-bold uppercase">Nome</label>
-                    <input type="text" id="nameInp" placeholder="Ex: Grog ou Goblin">
+                    <input type="text" id="nameInp" placeholder="Ex: Grog ou Skeleton">
                 </div>
                 <div>
                     <label class="text-xs text-slate-500 font-bold uppercase">Iniciativa</label>
@@ -386,8 +401,8 @@
                 </div>
             </div>
             <div class="flex gap-2 mt-6">
-                <button onclick="closeModal()" class="flex-1 p-2 rounded-lg bg-slate-700 font-bold">Cancelar</button>
-                <button onclick="saveEntity()" class="flex-1 p-2 rounded-lg bg-blue-600 font-bold">Salvar</button>
+                <button onclick="closeModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 font-bold">Cancelar</button>
+                <button onclick="saveEntity()" class="flex-1 p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold">Salvar no Combate</button>
             </div>
         </div>
     </div>
@@ -434,6 +449,7 @@
     <script>
         let combatants = [];
         let importedMonsters = [];
+        let remote5eToolsCache = []; // Cache dos monstros baixados do 5eTools
         let activeTurnId = null; 
         let selectedId = null;
         let round = 1;
@@ -459,6 +475,15 @@
         // Controle de Swipe Horizontal (Arrastar para a Esquerda)
         let touchStartX = 0;
         let touchStartY = 0;
+
+        // Fontes públicas do Bestiário 5eTools (Monster Manual, Volo, Mordenkainen, Fizban, Monsters of the Multiverse)
+        const FIVETOOLS_SOURCES = [
+            'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json',
+            'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-vgm.json',
+            'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mtf.json',
+            'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mpmm.json',
+            'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-ftd.json'
+        ];
 
         window.onload = () => {
             const savedPlayers = localStorage.getItem('dnd_players');
@@ -492,6 +517,16 @@
             }
             renderBestiaryList();
 
+            // Carrega cache do 5eTools se já sincronizado anteriormente
+            const saved5eCache = localStorage.getItem('dnd_5etools_online_index');
+            if (saved5eCache) {
+                try {
+                    remote5eToolsCache = JSON.parse(saved5eCache);
+                } catch (e) {
+                    remote5eToolsCache = [];
+                }
+            }
+
             const list = document.getElementById('combatList');
             list.addEventListener('mousedown', handleCardPressStart);
             list.addEventListener('touchstart', (e) => {
@@ -519,16 +554,177 @@
             }, {passive: true});
         };
 
+        // Sincroniza e indexa os livros do 5eTools no navegador
+        async function sync5eToolsDatabase(force = false) {
+            const statusEl = document.getElementById('fiveToolsSyncStatus');
+            if (!force && remote5eToolsCache.length > 0) {
+                statusEl.innerText = `${remote5eToolsCache.length} criaturas prontas`;
+                return;
+            }
+
+            statusEl.innerText = 'Baixando 5eTools... ⏳';
+            try {
+                const results = await Promise.allSettled(
+                    FIVETOOLS_SOURCES.map(url => fetch(url).then(r => r.ok ? r.json() : null))
+                );
+
+                const allRawMonsters = [];
+                results.forEach(res => {
+                    if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.monster)) {
+                        res.value.monster.forEach(m => {
+                            // Ignora variantes de cópia incompleta sem HP/AC se houver
+                            if (m.name && (m.hp || m.ac)) {
+                                allRawMonsters.push(m);
+                            }
+                        });
+                    }
+                });
+
+                if (allRawMonsters.length > 0) {
+                    remote5eToolsCache = allRawMonsters;
+                    try {
+                        localStorage.setItem('dnd_5etools_online_index', JSON.stringify(allRawMonsters));
+                    } catch (storageErr) {
+                        // Se exceder cota de localStorage, mantém em memória na sessão
+                        console.warn('Cache mantido apenas em RAM:', storageErr);
+                    }
+                    statusEl.innerText = `${remote5eToolsCache.length} criaturas indexadas ✅`;
+                    search5eToolsMonsters();
+                } else {
+                    statusEl.innerText = 'Falha ao conectar 5eTools';
+                }
+            } catch (err) {
+                console.error(err);
+                statusEl.innerText = 'Sem conexão com 5eTools';
+            }
+        }
+
+        // Busca em tempo real enquanto digita no modal de Novo Monstro
+        function search5eToolsMonsters() {
+            const query = (document.getElementById('fiveToolsQueryInp').value || '').trim().toLowerCase();
+            const resultsBox = document.getElementById('fiveToolsSearchResults');
+
+            if (query.length < 2) {
+                resultsBox.innerHTML = '';
+                resultsBox.classList.add('hidden');
+                return;
+            }
+
+            if (remote5eToolsCache.length === 0) {
+                sync5eToolsDatabase(false);
+                return;
+            }
+
+            // Prioriza monstros que começam com o termo digitado (ex: "Skeleton" aparece antes de "Giant Skeleton")
+            const startsWith = [];
+            const includes = [];
+
+            for (let i = 0; i < remote5eToolsCache.length; i++) {
+                const m = remote5eToolsCache[i];
+                const nameLower = m.name.toLowerCase();
+                if (nameLower.startsWith(query)) {
+                    startsWith.push(m);
+                } else if (nameLower.includes(query)) {
+                    includes.push(m);
+                }
+                if (startsWith.length + includes.length >= 25) break;
+            }
+
+            const matches = [...startsWith, ...includes].slice(0, 15);
+            resultsBox.innerHTML = '';
+            resultsBox.classList.remove('hidden');
+
+            if (matches.length === 0) {
+                resultsBox.innerHTML = `<div class="text-xs text-slate-500 p-2 text-center">Nenhum resultado no 5eTools para "${query}".</div>`;
+                return;
+            }
+
+            matches.forEach((rawMonster, idx) => {
+                const crVal = typeof rawMonster.cr === 'object' ? (rawMonster.cr.cr || '?') : (rawMonster.cr || '?');
+                const sourceBook = rawMonster.source || 'MM';
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between bg-slate-900 hover:bg-slate-800 border border-slate-700/80 px-2.5 py-1.5 rounded-lg gap-2";
+                row.innerHTML = `
+                    <div class="min-w-0 flex-1 cursor-pointer" onclick="apply5eToolsSearchResult(${idx}, false)">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-sm font-bold text-slate-100 truncate">${rawMonster.name}</span>
+                            <span class="text-[10px] bg-slate-950 text-amber-400 px-1 rounded font-mono border border-slate-700">CR ${crVal}</span>
+                            <span class="text-[9px] text-slate-500 font-mono">${sourceBook}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-1 shrink-0">
+                        <button type="button" onclick="apply5eToolsSearchResult(${idx}, false)" class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded" title="Preencher ficha">Usar</button>
+                        <button type="button" onclick="apply5eToolsSearchResult(${idx}, true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded" title="Adicionar direto ao combate">＋ Direto</button>
+                    </div>
+                `;
+                // Guarda referência temporária no elemento
+                row.dataset.rawJson = JSON.stringify(rawMonster);
+                resultsBox.appendChild(row);
+            });
+        }
+
+        function apply5eToolsSearchResult(idx, spawnImmediately) {
+            const resultsBox = document.getElementById('fiveToolsSearchResults');
+            const row = resultsBox.children[idx];
+            if (!row || !row.dataset.rawJson) return;
+
+            const rawMonster = JSON.parse(row.dataset.rawJson);
+            const parsed = parse5eToolsMonster(rawMonster);
+
+            // Salva automaticamente no Bestiário Local (gaveta esquerda) para uso offline futuro
+            const existingIdx = importedMonsters.findIndex(item => item.name.toLowerCase() === parsed.name.toLowerCase());
+            if (existingIdx !== -1) {
+                importedMonsters[existingIdx] = parsed;
+            } else {
+                importedMonsters.push(parsed);
+            }
+            localStorage.setItem('dnd_5etools_bestiary', JSON.stringify(importedMonsters));
+            renderBestiaryList();
+
+            if (spawnImmediately) {
+                closeModal();
+                spawnMonsterToCombat(parsed.id);
+                return;
+            }
+
+            // Preenche todos os campos do modal com os dados da criatura encontrada
+            const sameNameCount = combatants.filter(c => c.type === 'monster' && (c.baseName === parsed.name || c.name === parsed.name)).length;
+            const suggestedName = sameNameCount > 0 ? `${parsed.name} ${sameNameCount + 1}` : parsed.name;
+            const dexMod = Math.floor(((parsed.attributes?.dex || 10) - 10) / 2);
+
+            document.getElementById('nameInp').value = suggestedName;
+            document.getElementById('initInp').value = Math.floor(Math.random() * 20) + 1 + dexMod;
+            document.getElementById('hpInp').value = parsed.hpMax;
+            document.getElementById('caInp').value = parsed.ca;
+            document.getElementById('crInp').value = parsed.cr;
+            document.getElementById('sizeInp').value = parsed.size;
+            document.getElementById('typeAlignInp').value = parsed.typeAlign;
+            document.getElementById('speedInp').value = parsed.speed;
+            document.getElementById('attrStr').value = parsed.attributes.str;
+            document.getElementById('attrDex').value = parsed.attributes.dex;
+            document.getElementById('attrCon').value = parsed.attributes.con;
+            document.getElementById('attrInt').value = parsed.attributes.int;
+            document.getElementById('attrWis').value = parsed.attributes.wis;
+            document.getElementById('attrCha').value = parsed.attributes.cha;
+            document.getElementById('saveInp').value = parsed.saves || "";
+            document.getElementById('skillInp').value = parsed.skills || "";
+            document.getElementById('sensesInp').value = parsed.senses || "";
+            document.getElementById('languagesInp').value = parsed.languages || "";
+            document.getElementById('immunitiesInp').value = parsed.immunities || "";
+            document.getElementById('atkInp').value = parsed.atkInfo || "";
+            document.getElementById('traitsActionsInp').value = parsed.traitsActions || "";
+
+            resultsBox.classList.add('hidden');
+            showToast(`✅ Ficha de "${parsed.name}" carregada!`);
+        }
+
         function handleSwipeGesture(startX, startY, endX, endY) {
             const diffX = endX - startX;
             const diffY = endY - startY;
-            // Garante que foi um movimento predominantemente horizontal maior que 75px
             if (Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
                 if (diffX < 0) {
-                    // Arrastou para a esquerda -> Abre Bestiário 5eTools
                     openBestiaryDrawer();
                 } else {
-                    // Arrastou para a direita -> Fecha Bestiário 5eTools
                     closeBestiaryDrawer();
                 }
             }
@@ -715,7 +911,6 @@
                 let addedCount = 0;
                 monstersArray.forEach(m => {
                     const formatted = parse5eToolsMonster(m);
-                    // Evita duplicar monstros com o mesmo nome exato (atualiza se já existir)
                     const existingIdx = importedMonsters.findIndex(item => item.name.toLowerCase() === formatted.name.toLowerCase());
                     if (existingIdx !== -1) {
                         importedMonsters[existingIdx] = formatted;
@@ -746,7 +941,7 @@
                 container.innerHTML = `
                     <div class="text-center text-slate-500 text-sm mt-10 px-4">
                         Nenhum monstro encontrado no bestiário.<br>
-                        Use o botão abaixo para importar arquivos JSON do <b>5eTools</b>.
+                        Use a busca ao adicionar monstro (🧌) ou importe um JSON abaixo.
                     </div>
                 `;
                 return;
@@ -789,11 +984,9 @@
             const template = importedMonsters.find(m => m.id === id);
             if (!template) return;
 
-            // Numera automaticamente caso já exista um monstro com o mesmo nome no combate
-            const sameNameCount = combatants.filter(c => c.type === 'monster' && c.baseName === template.name).length;
+            const sameNameCount = combatants.filter(c => c.type === 'monster' && (c.baseName === template.name || c.name === template.name)).length;
             const displayName = sameNameCount > 0 ? `${template.name} ${sameNameCount + 1}` : template.name;
 
-            // Rola iniciativa automaticamente usando modificador de Destreza (DEX) do monstro
             const dexMod = Math.floor(((template.attributes?.dex || 10) - 10) / 2);
             const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
 
@@ -895,6 +1088,20 @@
             modalType = type;
             document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador (5eTools)' : 'Novo Monstro (5eTools)';
             document.getElementById('initInp').value = "";
+
+            // Exibe a barra de busca do 5eTools apenas para monstros
+            const searchBox = document.getElementById('fiveToolsSearchBox');
+            const resultsBox = document.getElementById('fiveToolsSearchResults');
+            document.getElementById('fiveToolsQueryInp').value = "";
+            resultsBox.innerHTML = "";
+            resultsBox.classList.add('hidden');
+
+            if (type === 'monster') {
+                searchBox.classList.remove('hidden');
+                sync5eToolsDatabase(false);
+            } else {
+                searchBox.classList.add('hidden');
+            }
 
             const ref = type === 'monster' ? lastMonsterData : lastPlayerData;
             document.getElementById('nameInp').value = (type === 'monster' ? "Inimigo " : "Jogador ") + (type === 'monster' ? monsterCounter : playerCounter);
@@ -1043,6 +1250,7 @@
 
                 const newEntity = {
                     id: Date.now(),
+                    baseName: name.replace(/\s+\d+$/, ''),
                     name,
                     initiative: init,
                     hpMax: hp,
@@ -1100,6 +1308,7 @@
             editingId = c.id;
             modalType = c.type;
             
+            document.getElementById('fiveToolsSearchBox').classList.add('hidden');
             document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro') + ' (5eTools)';
             document.getElementById('nameInp').value = c.name;
             document.getElementById('initInp').value = c.initiative;
@@ -1308,7 +1517,7 @@
             container.innerHTML = "";
 
             if (combatants.length === 0) {
-                container.innerHTML = `<div class="text-slate-600 text-center mt-10">Lista vazia.<br><span class="text-xs text-slate-700">Deslize para a esquerda para abrir o Bestiário 5eTools</span></div>`;
+                container.innerHTML = `<div class="text-slate-600 text-center mt-10">Lista vazia.<br><span class="text-xs text-slate-700">Toque em 🧌 para buscar no 5eTools ou deslize para a esquerda</span></div>`;
                 return;
             }
 
