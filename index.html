@@ -316,8 +316,8 @@
                 </div>
             </div>
             <div class="flex gap-2 mt-6">
-                <button onclick="closeModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 font-bold">Fechar</button>
-                <button onclick="saveEntity()" class="flex-1 p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold">Salvar no Combate</button>
+                <button onclick="closeModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 font-bold">Fechar</button>
+                <button onclick="saveEntity()" class="flex-1 p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg">Adicionar</button>
             </div>
         </div>
     </div>
@@ -530,9 +530,9 @@
                 const row = document.createElement('div');
                 row.className = "flex items-center justify-between bg-slate-900 border border-slate-700/80 px-2.5 py-1.5 rounded-lg gap-2";
                 row.innerHTML = `
-                    <div class="min-w-0 flex-1">
+                    <div onclick="loadMonsterToForm(${idx})" class="min-w-0 flex-1 cursor-pointer group py-0.5" title="Clique para carregar os dados nos campos abaixo">
                         <div class="flex items-center gap-1.5">
-                            <span class="text-sm font-bold text-slate-100 truncate">${rawMonster.name}</span>
+                            <span class="text-sm font-bold text-slate-100 group-hover:text-amber-400 transition-colors truncate">${rawMonster.name}</span>
                             <span class="text-[10px] bg-slate-950 text-amber-400 px-1 rounded font-mono border border-slate-700 shrink-0">CR ${crVal}</span>
                             <span class="text-[9px] text-slate-500 font-mono shrink-0">${sourceBook}</span>
                         </div>
@@ -549,6 +549,45 @@
                 row.dataset.rawJson = JSON.stringify(rawMonster);
                 resultsBox.appendChild(row);
             });
+        }
+
+        function loadMonsterToForm(idx) {
+            const resultsBox = document.getElementById('fiveToolsSearchResults');
+            const row = resultsBox.children[idx];
+            if (!row || !row.dataset.rawJson) return;
+
+            const rawMonster = JSON.parse(row.dataset.rawJson);
+            const parsed = parse5eToolsMonster(rawMonster);
+
+            const sameNameCount = combatants.filter(c => c.type === 'monster' && (c.baseName === parsed.name || c.name === parsed.name)).length;
+            const suggestedName = sameNameCount > 0 ? `${parsed.name} ${sameNameCount + 1}` : parsed.name;
+            const dexMod = Math.floor(((parsed.attributes?.dex || 10) - 10) / 2);
+            const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
+
+            document.getElementById('nameInp').value = suggestedName;
+            document.getElementById('initInp').value = rolledInit;
+            document.getElementById('hpInp').value = parsed.hpMax;
+            document.getElementById('caInp').value = parsed.ca;
+            document.getElementById('crInp').value = parsed.cr;
+            document.getElementById('sizeInp').value = parsed.size;
+            document.getElementById('typeAlignInp').value = parsed.typeAlign;
+            document.getElementById('speedInp').value = parsed.speed;
+            document.getElementById('attrStr').value = parsed.attributes.str;
+            document.getElementById('attrDex').value = parsed.attributes.dex;
+            document.getElementById('attrCon').value = parsed.attributes.con;
+            document.getElementById('attrInt').value = parsed.attributes.int;
+            document.getElementById('attrWis').value = parsed.attributes.wis;
+            document.getElementById('attrCha').value = parsed.attributes.cha;
+            document.getElementById('saveInp').value = parsed.saves || "";
+            document.getElementById('skillInp').value = parsed.skills || "";
+            document.getElementById('sensesInp').value = parsed.senses || "";
+            document.getElementById('languagesInp').value = parsed.languages || "";
+            document.getElementById('immunitiesInp').value = parsed.immunities || "";
+            document.getElementById('atkInp').value = parsed.atkInfo || "";
+            document.getElementById('traitsActionsInp').value = parsed.traitsActions || "";
+
+            resultsBox.classList.add('hidden');
+            showToast(`📋 Status de "${parsed.name}" carregados!`);
         }
 
         function adjustSearchQty(idx, delta) {
