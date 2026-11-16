@@ -220,7 +220,7 @@
             <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2">
                     <label class="text-xs text-slate-500 font-bold uppercase">Nome</label>
-                    <input type="text" id="nameInp" placeholder="Ex: Grog ou Skeleton">
+                    <input type="text" id="nameInp" placeholder="Ex: Grog ou Spider">
                 </div>
                 <div>
                     <label class="text-xs text-slate-500 font-bold uppercase">Iniciativa</label>
@@ -315,9 +315,18 @@
                     <textarea id="traitsActionsInp" rows="3" placeholder="Detalhes de traços e ações do 5eTools..."></textarea>
                 </div>
             </div>
-            <div class="flex gap-2 mt-6">
-                <button onclick="closeModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 font-bold">Fechar</button>
-                <button onclick="saveEntity()" class="flex-1 p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg">Adicionar</button>
+
+            <!-- Rodapé do Modal com Contador de Quantidade para Monstros -->
+            <div class="flex items-center gap-2 mt-6">
+                <button type="button" onclick="closeModal()" class="p-2.5 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 font-bold">Fechar</button>
+                
+                <div id="monsterQtyWrapper" class="flex items-center bg-slate-950 border border-slate-700 rounded-xl overflow-hidden shrink-0" title="Quantidade de monstros">
+                    <button type="button" onclick="adjustFormQty(-1)" class="px-3 py-2.5 text-slate-300 hover:bg-slate-800 font-bold text-base">-</button>
+                    <span id="formMonsterQty" class="px-3 text-sm font-mono font-bold text-amber-400">1</span>
+                    <button type="button" onclick="adjustFormQty(1)" class="px-3 py-2.5 text-slate-300 hover:bg-slate-800 font-bold text-base">+</button>
+                </div>
+
+                <button type="button" onclick="saveEntity()" class="flex-1 p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg">Adicionar</button>
             </div>
         </div>
     </div>
@@ -370,6 +379,7 @@
         let monsterCounter = 1;
         let playerCounter = 1;
         let currentInput = "0";
+        let modalType = 'monster';
         let lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro (qualquer)", speed: "30 ft.", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
         let lastPlayerData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "humanoide (qualquer)", speed: "30 ft.", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
 
@@ -444,11 +454,9 @@
             list.addEventListener('click', handleListClick);
         };
 
-        // Converte o deslocamento (ex: "30 ft." ou "9m") para quantidade de quadrados ("6 qd")
         function formatSpeedInSquares(speedStr) {
             if (!speedStr) return '6 qd';
             const raw = String(speedStr).trim();
-
             const mainPart = raw.split(',')[0].trim();
 
             const meterMatch = mainPart.match(/(\d+(?:[.,]\d+)?)\s*m\b/i);
@@ -583,12 +591,10 @@
             const rawMonster = JSON.parse(row.dataset.rawJson);
             const parsed = parse5eToolsMonster(rawMonster);
 
-            const sameNameCount = combatants.filter(c => c.type === 'monster' && (c.baseName === parsed.name || c.name === parsed.name)).length;
-            const suggestedName = sameNameCount > 0 ? `${parsed.name} ${sameNameCount + 1}` : parsed.name;
             const dexMod = Math.floor(((parsed.attributes?.dex || 10) - 10) / 2);
             const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
 
-            document.getElementById('nameInp').value = suggestedName;
+            document.getElementById('nameInp').value = parsed.name;
             document.getElementById('initInp').value = rolledInit;
             document.getElementById('hpInp').value = parsed.hpMax;
             document.getElementById('caInp').value = parsed.ca;
@@ -616,6 +622,14 @@
 
         function adjustSearchQty(idx, delta) {
             const qtyEl = document.getElementById(`searchQty-${idx}`);
+            if (!qtyEl) return;
+            let current = parseInt(qtyEl.innerText) || 1;
+            current = Math.max(1, Math.min(20, current + delta));
+            qtyEl.innerText = current;
+        }
+
+        function adjustFormQty(delta) {
+            const qtyEl = document.getElementById('formMonsterQty');
             if (!qtyEl) return;
             let current = parseInt(qtyEl.innerText) || 1;
             current = Math.max(1, Math.min(20, current + delta));
@@ -685,7 +699,6 @@
             showToast(qty > 1 ? `🧌 ${qty}x ${parsed.name} adicionados!` : `🧌 ${parsed.name} adicionado!`);
         }
 
-        // Conversor do formato JSON 5eTools para a ficha do app
         function parse5eToolsMonster(raw) {
             const sizeMap = { T: 'T', S: 'S', M: 'M', L: 'G', H: 'H', G: 'C' };
             const rawSize = Array.isArray(raw.size) ? raw.size[0] : (raw.size || 'M');
@@ -873,18 +886,22 @@
             modalType = type;
             document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador' : 'Novo Monstro (5eTools)';
             document.getElementById('initInp').value = "";
+            document.getElementById('formMonsterQty').innerText = "1";
 
             const searchBox = document.getElementById('fiveToolsSearchBox');
             const resultsBox = document.getElementById('fiveToolsSearchResults');
+            const qtyWrapper = document.getElementById('monsterQtyWrapper');
             document.getElementById('fiveToolsQueryInp').value = "";
             resultsBox.innerHTML = "";
             resultsBox.classList.add('hidden');
 
             if (type === 'monster') {
                 searchBox.classList.remove('hidden');
+                qtyWrapper.classList.remove('hidden');
                 sync5eToolsDatabase(false);
             } else {
                 searchBox.classList.add('hidden');
+                qtyWrapper.classList.add('hidden');
             }
 
             const ref = type === 'monster' ? lastMonsterData : lastPlayerData;
@@ -966,8 +983,10 @@
         }
 
         function saveEntity() {
-            const name = document.getElementById('nameInp').value;
-            const init = parseInt(document.getElementById('initInp').value) || 0;
+            const rawName = document.getElementById('nameInp').value.trim();
+            const rawInitVal = document.getElementById('initInp').value;
+            const hasExplicitInit = rawInitVal !== "";
+            const init = parseInt(rawInitVal) || 0;
             const hp = parseInt(document.getElementById('hpInp').value) || 1;
             const rawCaInput = document.getElementById('caInp').value || "10";
             const caNumMatch = String(rawCaInput).match(/\d+/);
@@ -994,17 +1013,14 @@
             const immunities = document.getElementById('immunitiesInp').value;
             const traitsActions = document.getElementById('traitsActionsInp').value;
 
-            if (!name) return;
-
-            let newlyAddedId = null;
-            let isHighestInit = false;
+            if (!rawName) return;
 
             const payloadData = { hp, ca, atk, cr, size, typeAlign, speed, str: attributes.str, dex: attributes.dex, con: attributes.con, int: attributes.int, wis: attributes.wis, cha: attributes.cha, saves, skills, senses, languages, immunities, traitsActions };
 
             if (editingId) {
                 const index = combatants.findIndex(c => c.id === editingId);
                 if (index !== -1) {
-                    combatants[index].name = name;
+                    combatants[index].name = rawName;
                     combatants[index].initiative = init;
                     combatants[index].hpMax = hp;
                     if (combatants[index].hpCurrent > hp) combatants[index].hpCurrent = hp;
@@ -1025,20 +1041,49 @@
                     if (combatants[index].type === 'player') savePlayersToStorage();
                 }
                 editingId = null;
-            } 
-            else {
-                if (combatants.length === 0) {
-                    isHighestInit = true;
-                } else {
-                    const maxInit = Math.max(...combatants.map(c => c.initiative));
-                    if (init >= maxInit) isHighestInit = true;
+                sortCombatants();
+                closeModal();
+                renderList(true);
+                return;
+            }
+
+            const qty = modalType === 'monster' ? (Math.max(1, parseInt(document.getElementById('formMonsterQty')?.innerText) || 1)) : 1;
+            const baseCleanName = rawName.replace(/\s+\d+$/, '');
+            let existingSameNameCount = combatants.filter(c => c.type === modalType && (c.baseName === baseCleanName || c.name === baseCleanName)).length;
+            const dexMod = Math.floor(((attributes.dex || 10) - 10) / 2);
+
+            let highestEntityId = null;
+            let currentMaxInit = combatants.length > 0 ? Math.max(...combatants.map(c => c.initiative)) : -Infinity;
+
+            for (let i = 0; i < qty; i++) {
+                existingSameNameCount++;
+                let finalName = rawName;
+
+                if (qty > 1) {
+                    // Se o nome era "Spider" e qty = 3 -> Spider 1, Spider 2, Spider 3
+                    finalName = `${baseCleanName} ${existingSameNameCount}`;
+                } else if (modalType === 'monster' && existingSameNameCount > 1 && !/\s+\d+$/.test(rawName)) {
+                    finalName = `${baseCleanName} ${existingSameNameCount}`;
                 }
 
-                const newEntity = {
-                    id: Date.now(),
-                    baseName: name.replace(/\s+\d+$/, ''),
-                    name,
-                    initiative: init,
+                // Se adicionar múltiplos monstros sem iniciativa explícita (ou 0), rola 1d20 + DES para cada um;
+                // se informou iniciativa, usa o valor informado
+                const entityInit = (qty > 1 && (!hasExplicitInit || init === 0))
+                    ? (Math.floor(Math.random() * 20) + 1 + dexMod)
+                    : init;
+
+                const entityId = Date.now() + Math.floor(Math.random() * 10000) + i;
+
+                if (entityInit >= currentMaxInit) {
+                    currentMaxInit = entityInit;
+                    highestEntityId = entityId;
+                }
+
+                combatants.push({
+                    id: entityId,
+                    baseName: baseCleanName,
+                    name: finalName,
+                    initiative: entityInit,
                     hpMax: hp,
                     hpCurrent: hp,
                     ca,
@@ -1048,7 +1093,7 @@
                     size,
                     typeAlign,
                     speed,
-                    attributes,
+                    attributes: { ...attributes },
                     saves,
                     skills,
                     senses,
@@ -1059,29 +1104,29 @@
                     conditions: [],
                     deathSaves: { success: 0, failures: 0 },
                     stabilized: false
-                };
+                });
+            }
 
-                combatants.push(newEntity);
-                newlyAddedId = newEntity.id;
-
-                if (modalType === 'monster') {
-                    monsterCounter++;
-                    lastMonsterData = payloadData;
-                } else {
-                    playerCounter++;
-                    lastPlayerData = payloadData;
-                    savePlayersToStorage();
-                }
+            if (modalType === 'monster') {
+                monsterCounter += qty;
+                lastMonsterData = payloadData;
+            } else {
+                playerCounter++;
+                lastPlayerData = payloadData;
+                savePlayersToStorage();
             }
 
             sortCombatants();
 
-            if (newlyAddedId && isHighestInit) {
-                activeTurnId = newlyAddedId;
+            if (highestEntityId !== null) {
+                activeTurnId = highestEntityId;
             }
 
             closeModal();
             renderList(true);
+            if (qty > 1) {
+                showToast(`🧌 ${qty}x ${baseCleanName} adicionados!`);
+            }
         }
 
         function editCombatant(event, id) {
@@ -1095,6 +1140,7 @@
             modalType = c.type;
             
             document.getElementById('fiveToolsSearchBox').classList.add('hidden');
+            document.getElementById('monsterQtyWrapper').classList.add('hidden');
             document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro');
             document.getElementById('nameInp').value = c.name;
             document.getElementById('initInp').value = c.initiative;
