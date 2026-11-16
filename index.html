@@ -199,7 +199,10 @@
     <!-- Modal Completo 5eTools (Cadastro/Edição + Busca Online 5eTools) -->
     <div id="entityModal" class="modal">
         <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
-            <h2 id="modalTitle" class="text-xl font-bold mb-3">Adicionar Entidade</h2>
+            <div class="flex items-center justify-between mb-3">
+                <h2 id="modalTitle" class="text-xl font-bold">Adicionar Entidade</h2>
+                <button type="button" onclick="closeModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-bold flex items-center justify-center" title="Fechar">✕</button>
+            </div>
 
             <!-- Caixa de Pesquisa Direta no 5eTools (Visível ao adicionar monstro) -->
             <div id="fiveToolsSearchBox" class="mb-4 bg-slate-950 p-3 rounded-xl border border-amber-500/40">
@@ -211,7 +214,7 @@
                     <input type="text" id="fiveToolsQueryInp" oninput="search5eToolsMonsters()" placeholder="Digite em inglês: Skeleton, Goblin, Orc, Dragon..." class="text-sm border-slate-700 focus:border-amber-400 outline-none">
                     <button type="button" onclick="sync5eToolsDatabase(true)" class="px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs shrink-0" title="Sincronizar livros do 5eTools">🔄</button>
                 </div>
-                <div id="fiveToolsSearchResults" class="mt-2 max-h-40 overflow-y-auto space-y-1 hidden"></div>
+                <div id="fiveToolsSearchResults" class="mt-2 max-h-48 overflow-y-auto space-y-1.5 hidden"></div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -313,7 +316,7 @@
                 </div>
             </div>
             <div class="flex gap-2 mt-6">
-                <button onclick="closeModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 font-bold">Cancelar</button>
+                <button onclick="closeModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 font-bold">Fechar</button>
                 <button onclick="saveEntity()" class="flex-1 p-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold">Salvar no Combate</button>
             </div>
         </div>
@@ -525,18 +528,22 @@
                 const crVal = typeof rawMonster.cr === 'object' ? (rawMonster.cr.cr || '?') : (rawMonster.cr || '?');
                 const sourceBook = rawMonster.source || 'MM';
                 const row = document.createElement('div');
-                row.className = "flex items-center justify-between bg-slate-900 hover:bg-slate-800 border border-slate-700/80 px-2.5 py-1.5 rounded-lg gap-2";
+                row.className = "flex items-center justify-between bg-slate-900 border border-slate-700/80 px-2.5 py-1.5 rounded-lg gap-2";
                 row.innerHTML = `
-                    <div class="min-w-0 flex-1 cursor-pointer" onclick="apply5eToolsSearchResult(${idx}, false)">
+                    <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5">
                             <span class="text-sm font-bold text-slate-100 truncate">${rawMonster.name}</span>
-                            <span class="text-[10px] bg-slate-950 text-amber-400 px-1 rounded font-mono border border-slate-700">CR ${crVal}</span>
-                            <span class="text-[9px] text-slate-500 font-mono">${sourceBook}</span>
+                            <span class="text-[10px] bg-slate-950 text-amber-400 px-1 rounded font-mono border border-slate-700 shrink-0">CR ${crVal}</span>
+                            <span class="text-[9px] text-slate-500 font-mono shrink-0">${sourceBook}</span>
                         </div>
                     </div>
-                    <div class="flex gap-1 shrink-0">
-                        <button type="button" onclick="apply5eToolsSearchResult(${idx}, false)" class="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded" title="Preencher ficha">Usar</button>
-                        <button type="button" onclick="apply5eToolsSearchResult(${idx}, true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded" title="Adicionar direto ao combate">＋ Direto</button>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <div class="flex items-center bg-slate-950 border border-slate-700 rounded-lg overflow-hidden">
+                            <button type="button" onclick="adjustSearchQty(${idx}, -1)" class="px-2 py-1 text-slate-300 hover:bg-slate-800 font-bold text-xs">-</button>
+                            <span id="searchQty-${idx}" class="px-2 text-xs font-mono font-bold text-amber-400">1</span>
+                            <button type="button" onclick="adjustSearchQty(${idx}, 1)" class="px-2 py-1 text-slate-300 hover:bg-slate-800 font-bold text-xs">+</button>
+                        </div>
+                        <button type="button" onclick="addSearchMonsterBatch(${idx})" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow">Adicionar</button>
                     </div>
                 `;
                 row.dataset.rawJson = JSON.stringify(rawMonster);
@@ -544,32 +551,46 @@
             });
         }
 
-        function apply5eToolsSearchResult(idx, spawnImmediately) {
+        function adjustSearchQty(idx, delta) {
+            const qtyEl = document.getElementById(`searchQty-${idx}`);
+            if (!qtyEl) return;
+            let current = parseInt(qtyEl.innerText) || 1;
+            current = Math.max(1, Math.min(20, current + delta));
+            qtyEl.innerText = current;
+        }
+
+        function addSearchMonsterBatch(idx) {
             const resultsBox = document.getElementById('fiveToolsSearchResults');
             const row = resultsBox.children[idx];
             if (!row || !row.dataset.rawJson) return;
 
+            const qtyEl = document.getElementById(`searchQty-${idx}`);
+            const qty = Math.max(1, parseInt(qtyEl?.innerText) || 1);
+
             const rawMonster = JSON.parse(row.dataset.rawJson);
             const parsed = parse5eToolsMonster(rawMonster);
 
-            const sameNameCount = combatants.filter(c => c.type === 'monster' && (c.baseName === parsed.name || c.name === parsed.name)).length;
-            const suggestedName = sameNameCount > 0 ? `${parsed.name} ${sameNameCount + 1}` : parsed.name;
+            let existingCount = combatants.filter(c => c.type === 'monster' && (c.baseName === parsed.name || c.name === parsed.name)).length;
             const dexMod = Math.floor(((parsed.attributes?.dex || 10) - 10) / 2);
-            const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
 
-            if (spawnImmediately) {
-                let isHighestInit = false;
-                if (combatants.length === 0) {
-                    isHighestInit = true;
-                } else {
-                    const maxInit = Math.max(...combatants.map(c => c.initiative));
-                    if (rolledInit >= maxInit) isHighestInit = true;
+            let highestEntityId = null;
+            let currentMaxInit = combatants.length > 0 ? Math.max(...combatants.map(c => c.initiative)) : -Infinity;
+
+            for (let i = 0; i < qty; i++) {
+                existingCount++;
+                const displayName = (existingCount > 1 || qty > 1) ? `${parsed.name} ${existingCount}` : parsed.name;
+                const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
+                const entityId = Date.now() + Math.floor(Math.random() * 10000) + i;
+
+                if (rolledInit >= currentMaxInit) {
+                    currentMaxInit = rolledInit;
+                    highestEntityId = entityId;
                 }
 
-                const newEntity = {
-                    id: Date.now() + Math.floor(Math.random() * 1000),
+                combatants.push({
+                    id: entityId,
                     baseName: parsed.name,
-                    name: suggestedName,
+                    name: displayName,
                     initiative: rolledInit,
                     hpMax: parsed.hpMax,
                     hpCurrent: parsed.hpMax,
@@ -591,41 +612,14 @@
                     conditions: [],
                     deathSaves: { success: 0, failures: 0 },
                     stabilized: false
-                };
-
-                combatants.push(newEntity);
-                sortCombatants();
-                if (isHighestInit) activeTurnId = newEntity.id;
-                closeModal();
-                renderList(true);
-                showToast(`🧌 ${suggestedName} entrou (Init ${rolledInit})!`);
-                return;
+                });
             }
 
-            document.getElementById('nameInp').value = suggestedName;
-            document.getElementById('initInp').value = rolledInit;
-            document.getElementById('hpInp').value = parsed.hpMax;
-            document.getElementById('caInp').value = parsed.ca;
-            document.getElementById('crInp').value = parsed.cr;
-            document.getElementById('sizeInp').value = parsed.size;
-            document.getElementById('typeAlignInp').value = parsed.typeAlign;
-            document.getElementById('speedInp').value = parsed.speed;
-            document.getElementById('attrStr').value = parsed.attributes.str;
-            document.getElementById('attrDex').value = parsed.attributes.dex;
-            document.getElementById('attrCon').value = parsed.attributes.con;
-            document.getElementById('attrInt').value = parsed.attributes.int;
-            document.getElementById('attrWis').value = parsed.attributes.wis;
-            document.getElementById('attrCha').value = parsed.attributes.cha;
-            document.getElementById('saveInp').value = parsed.saves || "";
-            document.getElementById('skillInp').value = parsed.skills || "";
-            document.getElementById('sensesInp').value = parsed.senses || "";
-            document.getElementById('languagesInp').value = parsed.languages || "";
-            document.getElementById('immunitiesInp').value = parsed.immunities || "";
-            document.getElementById('atkInp').value = parsed.atkInfo || "";
-            document.getElementById('traitsActionsInp').value = parsed.traitsActions || "";
-
-            resultsBox.classList.add('hidden');
-            showToast(`✅ Ficha de "${parsed.name}" carregada!`);
+            sortCombatants();
+            if (highestEntityId !== null) activeTurnId = highestEntityId;
+            closeModal();
+            renderList(true);
+            showToast(qty > 1 ? `🧌 ${qty}x ${parsed.name} adicionados!` : `🧌 ${parsed.name} adicionado!`);
         }
 
         // Conversor do formato JSON 5eTools para a ficha do app (CA numérica pura + Atk "+X/1dY+Z")
@@ -645,7 +639,6 @@
                 typeAlign += `, ${raw.alignment.join('')}`;
             }
 
-            // Extrai apenas o valor numérico da CA (ignora descrição da armadura)
             let ca = '10';
             if (Array.isArray(raw.ac) && raw.ac.length > 0) {
                 const firstAc = raw.ac[0];
@@ -720,7 +713,6 @@
             extractEntries(raw.reaction, 'REAÇÕES');
             extractEntries(raw.legendary, 'AÇÕES LENDÁRIAS');
 
-            // Extrai apenas o bônus de ataque e o dano no formato "+4/1d6+2"
             if (Array.isArray(raw.action) && raw.action.length > 0) {
                 for (let i = 0; i < raw.action.length; i++) {
                     const act = raw.action[i];
