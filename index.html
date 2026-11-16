@@ -83,7 +83,7 @@
             padding: 20px;
         }
 
-        input {
+        input, textarea, select {
             background: #1e293b;
             border: 1px solid #334155;
             color: white;
@@ -122,7 +122,6 @@
         }
         .toast-show { opacity: 1 !important; top: 40px !important; }
 
-        /* Menu Circular */
         #circularMenu {
             display: none;
             position: fixed;
@@ -196,10 +195,11 @@
         </div>
     </footer>
 
+    <!-- Modal Completo 5eTools (Atributos, Perícias, CA, HP, CR, etc.) -->
     <div id="entityModal" class="modal">
-        <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-md border border-slate-700">
-            <h2 id="modalTitle" class="text-xl font-bold mb-4">Adicionar Entidade</h2>
-            <div class="grid grid-cols-2 gap-4">
+        <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4">Adicionar Entidade (5eTools)</h2>
+            <div class="grid grid-cols-2 gap-3">
                 <div class="col-span-2">
                     <label class="text-xs text-slate-500 font-bold uppercase">Nome</label>
                     <input type="text" id="nameInp" placeholder="Ex: Grog ou Goblin">
@@ -209,22 +209,116 @@
                     <input type="number" id="initInp" placeholder="0">
                 </div>
                 <div>
+                    <label class="text-xs text-slate-500 font-bold uppercase">CR (Nível Desafio)</label>
+                    <input type="text" id="crInp" placeholder="1/4 ou 5">
+                </div>
+                <div>
                     <label class="text-xs text-slate-500 font-bold uppercase">HP Max</label>
                     <input type="number" id="hpInp" placeholder="10">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-500 font-bold uppercase">CA</label>
-                    <input type="number" id="caInp" placeholder="10">
+                    <label class="text-xs text-slate-500 font-bold uppercase">CA (Armor Class)</label>
+                    <input type="text" id="caInp" placeholder="15 ou 15 (Leather)">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-500 font-bold uppercase">Ataque/Dano</label>
-                    <input type="text" id="atkInp" placeholder="+5 / 1d8">
+                    <label class="text-xs text-slate-500 font-bold uppercase">Tamanho (Size)</label>
+                    <select id="sizeInp">
+                        <option value="M">Médio (M)</option>
+                        <option value="S">Pequeno (S)</option>
+                        <option value="T">Miúdo (T)</option>
+                        <option value="G">Grande (G)</option>
+                        <option value="H">Enorme (H)</option>
+                        <option value="C">Imenso (C)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 font-bold uppercase">Tipo / Alinhamento</label>
+                    <input type="text" id="typeAlignInp" placeholder="humanoide (qualquer), neutro">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-xs text-slate-500 font-bold uppercase">Deslocamento (Speed)</label>,
+                    <input type="text" id="speedInp" placeholder="9m, voo 12m">
+                </div>
+
+                <!-- Atributos base do 5eTools (STR, DEX, CON, INT, WIS, CHA) -->
+                <div class="col-span-2 grid grid-cols-6 gap-1 bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
+                    <div>
+                        <span class="text-[10px] text-slate-500 block font-bold">FOR</span>
+                        <input type="number" id="attrStr" value="10" class="text-center p-1 text-sm">
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block font-bold">DES</span>
+                        <input type="number" id="attrDex" value="10" class="text-center p-1 text-sm">
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block font-bold">CON</span>
+                        <input type="number" id="attrCon" value="10" class="text-center p-1 text-sm">
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block font-bold">INT</span>
+                        <input type="number" id="attrInt" value="10" class="text-center p-1 text-sm">
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block font-bold">SAB</span>
+                        <input type="number" id="attrWis" value="10" class="text-center p-1 text-sm">
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-slate-500 block font-bold">CAR</span>
+                        <input type="number" id="attrCha" value="10" class="text-center p-1 text-sm">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-500 font-bold uppercase">Salvaguardas (Saves)</label>
+                    <input type="text" id="saveInp" placeholder="Des +4, Sab +2">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 font-bold uppercase">Perícias (Skills)</label>
+                    <input type="text" id="skillInp" placeholder="Furtividade +4">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 font-bold uppercase">Sentidos (Senses)</label>
+                    <input type="text" id="sensesInp" placeholder="Percepção passiva 12">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 font-bold uppercase">Idiomas (Languages)</label>
+                    <input type="text" id="languagesInp" placeholder="Comum, Élfico">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-xs text-slate-500 font-bold uppercase">Resistências / Imunidades</label>
+                    <input type="text" id="immunitiesInp" placeholder="Resistente a fogo; Imune a veneno">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-xs text-slate-500 font-bold uppercase">Ataque / Ações Resumidas (AtkInfo)</label>
+                    <input type="text" id="atkInp" placeholder="+5 / 1d8+3 cortante">
                 </div>
             </div>
             <div class="flex gap-2 mt-6">
                 <button onclick="closeModal()" class="flex-1 p-2 rounded-lg bg-slate-700 font-bold">Cancelar</button>
                 <button onclick="saveEntity()" class="flex-1 p-2 rounded-lg bg-blue-600 font-bold">Salvar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal de Informações Detalhadas do 5eTools (Expandido ao clicar nos detalhes do card) -->
+    <div id="detailsModal" class="modal">
+        <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
+            <h2 id="detailName" class="text-2xl font-bold text-blue-400 mb-1">Nome da Criatura</h2>
+            <p id="detailSub" class="text-xs text-slate-400 italic mb-4">Tamanho, Tipo, Alinhamento</p>
+            <div class="space-y-3 text-sm border-t border-slate-800 pt-3">
+                <div><strong>CA:</strong> <span id="detailCa">-</span> | <strong>HP:</strong> <span id="detailHp">-</span> | <strong>CR:</strong> <span id="detailCr">-</span></div>
+                <div><strong>Deslocamento:</strong> <span id="detailSpeed">-</span></div>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Atributos 5eTools</p>
+                    <div id="detailAttrs" class="grid grid-cols-6 gap-1 text-xs font-mono"></div>
+                </div>
+                <div><strong>Salvaguardas:</strong> <span id="detailSaves">-</span></div>
+                <div><strong>Perícias:</strong> <span id="detailSkills">-</span></div>
+                <div><strong>Resistências/Imunidades:</strong> <span id="detailImmunities">-</span></div>
+                <div><strong>Sentidos & Idiomas:</strong> <span id="detailSensesLang">-</span></div>
+                <div><strong>Ataque / Descrição:</strong> <span id="detailAtk">-</span></div>
+            </div>
+            <button onclick="closeDetailsModal()" class="w-full mt-6 p-2 rounded-lg bg-slate-700 font-bold">Fechar</button>
         </div>
     </div>
 
@@ -241,8 +335,7 @@
     </div>
 
     <div id="circularMenu" onclick="closeConditionMenu(event)">
-        <div class="relative w-64 h-64" id="circleContainer">
-            </div>
+        <div class="relative w-64 h-64" id="circleContainer"></div>
     </div>
 
     <script>
@@ -253,14 +346,14 @@
         let monsterCounter = 1;
         let playerCounter = 1;
         let currentInput = "0";
-        let lastMonsterData = { hp: "", ca: "", atk: "" };
-        let lastPlayerData = { hp: "", ca: "", atk: "" };
+        let lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
+        let lastPlayerData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "humanoide (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
 
         let pressTimer;
-        let startY = 0; // Para ignorar scrolls na delegação
+        let startY = 0; 
         let deleteVisibleId = null;
         let editingId = null; 
-        let showEliminated = true; // Controle da divisória
+        let showEliminated = true; 
         let concentrationTargetId = null;
 
         let initPressTimer;
@@ -269,7 +362,6 @@
         let endCombatPressTimer;
         let didEndCombatLongPress = false;
 
-        // INICIALIZAÇÃO E DELEGAÇÃO DE EVENTOS
         window.onload = () => {
             const savedPlayers = localStorage.getItem('dnd_players');
             if (savedPlayers) {
@@ -284,19 +376,19 @@
                     if (!c.conditions) c.conditions = [];
                     if (!c.deathSaves) c.deathSaves = { success: 0, failures: 0 };
                     if (c.stabilized === undefined) c.stabilized = false;
-                    // Migrar dados antigos
-                    if (c.statusSpiral) {
-                        if (!c.conditions.includes('🌀')) c.conditions.push('🌀');
-                        delete c.statusSpiral;
-                    }
+                    // Garantir campos 5eTools caso carregue salvos antigos
+                    if (!c.cr) c.cr = "1";
+                    if (!c.size) c.size = "M";
+                    if (!c.typeAlign) c.typeAlign = "criatura";
+                    if (!c.speed) c.speed = "9m";
+                    if (!c.attributes) c.attributes = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
                 });
                 playerCounter = pCount + 1;
-                if (lastP) lastPlayerData = { hp: lastP.hpMax, ca: lastP.ca, atk: lastP.atkInfo };
+                if (lastP) lastPlayerData = { hp: lastP.hpMax, ca: lastP.ca, atk: lastP.atkInfo, cr: lastP.cr, size: lastP.size, typeAlign: lastP.typeAlign, speed: lastP.speed, str: lastP.attributes.str, dex: lastP.attributes.dex, con: lastP.attributes.con, int: lastP.attributes.int, wis: lastP.attributes.wis, cha: lastP.attributes.cha, saves: lastP.saves, skills: lastP.skills, senses: lastP.senses, languages: lastP.languages, immunities: lastP.immunities };
                 if (combatants.length > 0) activeTurnId = combatants[0].id;
                 renderList();
             }
 
-            // Delegação de Eventos na Main List
             const list = document.getElementById('combatList');
             list.addEventListener('mousedown', handleCardPressStart);
             list.addEventListener('touchstart', (e) => {
@@ -312,10 +404,9 @@
             list.addEventListener('click', handleListClick);
         };
 
-        // Lógica de Eventos Delegados
         function handleCardPressStart(e) {
             const card = e.target.closest('.combat-card');
-            if (!card || deleteVisibleId || e.target.closest('.delete-overlay')) return;
+            if (!card || deleteVisibleId || e.target.closest('.delete-overlay') || e.target.closest('.detail-btn')) return;
             const id = parseInt(card.id.split('-')[1]);
             pressTimer = setTimeout(() => {
                 deleteVisibleId = id;
@@ -336,6 +427,14 @@
 
             if (e.target.closest('.delete-overlay')) return;
 
+            // Botão de abrir ficha detalhada 5eTools
+            const detailBtn = e.target.closest('.detail-btn');
+            if (detailBtn) {
+                const id = parseInt(detailBtn.dataset.id);
+                openDetailsModal(id);
+                return;
+            }
+
             const card = e.target.closest('.combat-card');
             if (card && !deleteVisibleId) {
                 const id = parseInt(card.id.split('-')[1]);
@@ -345,9 +444,9 @@
         }
 
         function getHPColor(pct) {
-            if (pct > 50) return '#10b981'; // emerald
-            if (pct > 25) return '#f59e0b'; // amber
-            return '#ef4444'; // red
+            if (pct > 50) return '#10b981';
+            if (pct > 25) return '#f59e0b';
+            return '#ef4444';
         }
 
         function showToast(message) {
@@ -358,27 +457,32 @@
         }
 
         function openModal(type) {
-            const nameInput = document.getElementById('nameInp');
-            const hpInp = document.getElementById('hpInp');
-            const caInp = document.getElementById('caInp');
-            const atkInp = document.getElementById('atkInp');
-            
             editingId = null; 
             modalType = type;
-            document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador' : 'Novo Monstro';
+            document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador (5eTools)' : 'Novo Monstro (5eTools)';
             document.getElementById('initInp').value = "";
 
-            if (type === 'monster') {
-                nameInput.value = "Inimigo " + monsterCounter;
-                hpInp.value = lastMonsterData.hp;
-                caInp.value = lastMonsterData.ca;
-                atkInp.value = lastMonsterData.atk;
-            } else {
-                nameInput.value = "Jogador " + playerCounter;
-                hpInp.value = lastPlayerData.hp;
-                caInp.value = lastPlayerData.ca;
-                atkInp.value = lastPlayerData.atk;
-            }
+            const ref = type === 'monster' ? lastMonsterData : lastPlayerData;
+            document.getElementById('nameInp').value = (type === 'monster' ? "Inimigo " : "Jogador ") + (type === 'monster' ? monsterCounter : playerCounter);
+            document.getElementById('hpInp').value = ref.hp;
+            document.getElementById('caInp').value = ref.ca;
+            document.getElementById('atkInp').value = ref.atk;
+            document.getElementById('crInp').value = ref.cr;
+            document.getElementById('sizeInp').value = ref.size;
+            document.getElementById('typeAlignInp').value = ref.typeAlign;
+            document.getElementById('speedInp').value = ref.speed;
+            document.getElementById('attrStr').value = ref.str;
+            document.getElementById('attrDex').value = ref.dex;
+            document.getElementById('attrCon').value = ref.con;
+            document.getElementById('attrInt').value = ref.int;
+            document.getElementById('attrWis').value = ref.wis;
+            document.getElementById('attrCha').value = ref.cha;
+            document.getElementById('saveInp').value = ref.saves || "";
+            document.getElementById('skillInp').value = ref.skills || "";
+            document.getElementById('sensesInp').value = ref.senses || "";
+            document.getElementById('languagesInp').value = ref.languages || "";
+            document.getElementById('immunitiesInp').value = ref.immunities || "";
+
             document.getElementById('entityModal').style.display = 'flex';
         }
 
@@ -386,17 +490,76 @@
             document.getElementById('entityModal').style.display = 'none';
         }
 
+        function openDetailsModal(id) {
+            const c = combatants.find(item => item.id === id);
+            if (!c) return;
+
+            document.getElementById('detailName').innerText = c.name;
+            document.getElementById('detailSub').innerText = `Tamanho: ${c.size || 'M'} | Tipo: ${c.typeAlign || 'Criatura'} | Alinhamento`;
+            document.getElementById('detailCa').innerText = c.ca;
+            document.getElementById('detailHp').innerText = `${c.hpCurrent}/${c.hpMax}`;
+            document.getElementById('detailCr').innerText = c.cr || '1';
+            document.getElementById('detailSpeed').innerText = c.speed || '9m';
+
+            const attrs = c.attributes || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
+            const getMod = (val) => {
+                const m = Math.floor((val - 10) / 2);
+                return m >= 0 ? `+${m}` : `${m}`;
+            };
+            document.getElementById('detailAttrs').innerHTML = `
+                <div>FOR<br><b>${attrs.str}</b> (${getMod(attrs.str)})</div>
+                <div>DES<br><b>${attrs.dex}</b> (${getMod(attrs.dex)})</div>
+                <div>CON<br><b>${attrs.con}</b> (${getMod(attrs.con)})</div>
+                <div>INT<br><b>${attrs.int}</b> (${getMod(attrs.int)})</div>
+                <div>SAB<br><b>${attrs.wis}</b> (${getMod(attrs.wis)})</div>
+                <div>CAR<br><b>${attrs.cha}</b> (${getMod(attrs.cha)})</div>
+            `;
+
+            document.getElementById('detailSaves').innerText = c.saves || 'Nenhuma';
+            document.getElementById('detailSkills').innerText = c.skills || 'Nenhuma';
+            document.getElementById('detailImmunities').innerText = c.immunities || 'Nenhuma';
+            document.getElementById('detailSensesLang').innerText = `Sentidos: ${c.senses || 'Padrão'} | Idiomas: ${c.languages || 'Comum'}`;
+            document.getElementById('detailAtk').innerText = c.atkInfo || 'Nenhum';
+
+            document.getElementById('detailsModal').style.display = 'flex';
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('detailsModal').style.display = 'none';
+        }
+
         function saveEntity() {
             const name = document.getElementById('nameInp').value;
             const init = parseInt(document.getElementById('initInp').value) || 0;
             const hp = parseInt(document.getElementById('hpInp').value) || 1;
-            const ca = parseInt(document.getElementById('caInp').value) || 10;
+            const ca = document.getElementById('caInp').value || "10";
             const atk = document.getElementById('atkInp').value || "-";
+            const cr = document.getElementById('crInp').value || "1";
+            const size = document.getElementById('sizeInp').value || "M";
+            const typeAlign = document.getElementById('typeAlignInp').value || "humanoide";
+            const speed = document.getElementById('speedInp').value || "9m";
+            
+            const attributes = {
+                str: parseInt(document.getElementById('attrStr').value) || 10,
+                dex: parseInt(document.getElementById('attrDex').value) || 10,
+                con: parseInt(document.getElementById('attrCon').value) || 10,
+                int: parseInt(document.getElementById('attrInt').value) || 10,
+                wis: parseInt(document.getElementById('attrWis').value) || 10,
+                cha: parseInt(document.getElementById('attrCha').value) || 10
+            };
+
+            const saves = document.getElementById('saveInp').value;
+            const skills = document.getElementById('skillInp').value;
+            const senses = document.getElementById('sensesInp').value;
+            const languages = document.getElementById('languagesInp').value;
+            const immunities = document.getElementById('immunitiesInp').value;
 
             if (!name) return;
 
             let newlyAddedId = null;
             let isHighestInit = false;
+
+            const payloadData = { hp, ca, atk, cr, size, typeAlign, speed, str: attributes.str, dex: attributes.dex, con: attributes.con, int: attributes.int, wis: attributes.wis, cha: attributes.cha, saves, skills, senses, languages, immunities };
 
             if (editingId) {
                 const index = combatants.findIndex(c => c.id === editingId);
@@ -407,13 +570,22 @@
                     if (combatants[index].hpCurrent > hp) combatants[index].hpCurrent = hp;
                     combatants[index].ca = ca;
                     combatants[index].atkInfo = atk;
+                    combatants[index].cr = cr;
+                    combatants[index].size = size;
+                    combatants[index].typeAlign = typeAlign;
+                    combatants[index].speed = speed;
+                    combatants[index].attributes = attributes;
+                    combatants[index].saves = saves;
+                    combatants[index].skills = skills;
+                    combatants[index].senses = senses;
+                    combatants[index].languages = languages;
+                    combatants[index].immunities = immunities;
                     
                     if (combatants[index].type === 'player') savePlayersToStorage();
                 }
                 editingId = null;
             } 
             else {
-                // Verifica se é a maior iniciativa
                 if (combatants.length === 0) {
                     isHighestInit = true;
                 } else {
@@ -430,6 +602,16 @@
                     ca,
                     atkInfo: atk,
                     type: modalType,
+                    cr,
+                    size,
+                    typeAlign,
+                    speed,
+                    attributes,
+                    saves,
+                    skills,
+                    senses,
+                    languages,
+                    immunities,
                     statusBrain: false,
                     conditions: [],
                     deathSaves: { success: 0, failures: 0 },
@@ -441,17 +623,16 @@
 
                 if (modalType === 'monster') {
                     monsterCounter++;
-                    lastMonsterData = { hp, ca, atk };
+                    lastMonsterData = payloadData;
                 } else {
                     playerCounter++;
-                    lastPlayerData = { hp, ca, atk };
+                    lastPlayerData = payloadData;
                     savePlayersToStorage();
                 }
             }
 
             sortCombatants();
 
-            // Configura para ser a vez dele se for a maior iniciativa
             if (newlyAddedId && isHighestInit) {
                 activeTurnId = newlyAddedId;
             }
@@ -470,12 +651,29 @@
             editingId = c.id;
             modalType = c.type;
             
-            document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro');
+            document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro') + ' (5eTools)';
             document.getElementById('nameInp').value = c.name;
             document.getElementById('initInp').value = c.initiative;
             document.getElementById('hpInp').value = c.hpMax;
             document.getElementById('caInp').value = c.ca;
             document.getElementById('atkInp').value = c.atkInfo;
+            document.getElementById('crInp').value = c.cr || "1";
+            document.getElementById('sizeInp').value = c.size || "M";
+            document.getElementById('typeAlignInp').value = c.typeAlign || "";
+            document.getElementById('speedInp').value = c.speed || "9m";
+            
+            const attr = c.attributes || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
+            document.getElementById('attrStr').value = attr.str;
+            document.getElementById('attrDex').value = attr.dex;
+            document.getElementById('attrCon').value = attr.con;
+            document.getElementById('attrInt').value = attr.int;
+            document.getElementById('attrWis').value = attr.wis;
+            document.getElementById('attrCha').value = attr.cha;
+            document.getElementById('saveInp').value = c.saves || "";
+            document.getElementById('skillInp').value = c.skills || "";
+            document.getElementById('sensesInp').value = c.senses || "";
+            document.getElementById('languagesInp').value = c.languages || "";
+            document.getElementById('immunitiesInp').value = c.immunities || "";
             
             document.getElementById('entityModal').style.display = 'flex';
         }
@@ -516,7 +714,7 @@
             if (index !== -1) {
                 combatants[index].statusBrain = !combatants[index].statusBrain;
                 if (combatants[index].type === 'player') savePlayersToStorage();
-                updateCardTargeted(combatants[index]); // Atualiza DOM sem piscar a tela
+                updateCardTargeted(combatants[index]);
             }
         }
 
@@ -582,7 +780,7 @@
                 
                 if (combatants[index].type === 'player') savePlayersToStorage();
                 updateCardTargeted(combatants[index]);
-                openConditionMenu(); // Atualiza cores no menu sem fechar
+                openConditionMenu();
             }
         }
 
@@ -604,7 +802,7 @@
             activeTurnId = null;
             round = 1;
             monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "" };
+            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
             selectedId = null;
             deleteVisibleId = null;
             document.getElementById('targetName').innerText = "Nenhum";
@@ -632,7 +830,7 @@
             activeTurnId = combatants.length > 0 ? combatants[0].id : null;
             round = 1;
             monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "" };
+            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
             selectedId = null;
             deleteVisibleId = null;
             document.getElementById('targetName').innerText = "Nenhum";
@@ -750,8 +948,11 @@
                                 ${c.initiative}
                             </div>
                             <div class="py-1 flex-1 min-w-0">
-                                <h3 class="font-bold text-lg leading-none truncate ${c.type === 'monster' ? 'text-red-400' : ''}">${c.name}</h3>
-                                <p class="text-slate-300 text-lg font-semibold tracking-tight leading-none mt-1 truncate">CA: ${c.ca} | ${c.atkInfo}</p>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="font-bold text-lg leading-none truncate ${c.type === 'monster' ? 'text-red-400' : ''}">${c.name}</h3>
+                                    <button data-id="${c.id}" class="detail-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-1.5 py-0.5 rounded font-mono border border-slate-600" title="Ver Ficha 5eTools">CR ${c.cr || '1'} 🔍</button>
+                                </div>
+                                <p class="text-slate-300 text-sm font-semibold tracking-tight leading-none mt-1.5 truncate">CA: ${c.ca} | ${c.atkInfo}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
@@ -790,7 +991,6 @@
 
             const hpContainer = card.querySelector('.hp-container');
             if (hpContainer) {
-                const hpColor = c.type === 'monster' ? 'text-red-500' : 'text-emerald-400';
                 if (isDeadMonster) {
                     hpContainer.innerHTML = `<div class="hp-text text-3xl leading-none pt-1">💀</div>`;
                 } else if (isDeadPlayer) {
@@ -808,6 +1008,7 @@
                         </div>
                     `;
                 } else {
+                    const hpColor = c.type === 'monster' ? 'text-red-500' : 'text-emerald-400';
                     hpContainer.innerHTML = `
                         <div class="hp-text text-xl font-bold leading-none ${hpColor}">${c.hpCurrent}/${c.hpMax}</div>
                         <div class="text-[10px] uppercase text-slate-500 font-bold tracking-wider leading-none mt-1">HP</div>
@@ -909,7 +1110,7 @@
                         c.deathSaves = { success: 0, failures: 0 };
                         c.stabilized = false;
                     } else {
-                        return; // Zero e HP normal ignora
+                        return;
                     }
                 } else {
                     if (c.hpCurrent <= 0 && value === 0) {
@@ -926,14 +1127,14 @@
                             c.deathSaves = { success: 0, failures: 0 };
                         } else if (c.hpCurrent <= 0 && oldHP <= 0) {
                             if (oldFailures < 3) {
-                                c.deathSaves.failures = Math.min(3, c.deathSaves.failures + 1); // Dano com 0 HP soma falha
+                                c.deathSaves.failures = Math.min(3, c.deathSaves.failures + 1);
                                 if (c.deathSaves.failures >= 3) showToast('☠️ Morto!');
                             }
                         } else if (c.statusBrain && oldHP > 0) {
                             triggerConcentration = true;
                         }
                     } else {
-                        return; // Zero e HP normal ignora
+                        return;
                     }
                 }
                 
