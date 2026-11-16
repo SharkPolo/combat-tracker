@@ -25,7 +25,7 @@
             -webkit-user-select: none;
         }
 
-        .combat-list {
+        .combat-list, .drawer-list {
             flex-grow: 1;
             overflow-y: auto;
             scroll-behavior: smooth;
@@ -40,8 +40,8 @@
             border-left: 6px solid #fbbf24 !important;
         }
 
-        .combat-list::-webkit-scrollbar { width: 4px; }
-        .combat-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .combat-list::-webkit-scrollbar, .drawer-list::-webkit-scrollbar { width: 4px; }
+        .combat-list::-webkit-scrollbar-thumb, .drawer-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
 
         .numpad-grid {
             display: grid;
@@ -76,10 +76,10 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             align-items: center;
             justify-content: center;
-            z-index: 50;
+            z-index: 60;
             padding: 20px;
         }
 
@@ -119,6 +119,7 @@
             pointer-events: none;
             transition: opacity 0.3s, top 0.3s;
             z-index: 100;
+            white-space: nowrap;
         }
         .toast-show { opacity: 1 !important; top: 40px !important; }
 
@@ -129,13 +130,52 @@
             background: rgba(0,0,0,0.8);
             align-items: center;
             justify-content: center;
-            z-index: 60;
+            z-index: 70;
+        }
+
+        /* Gaveta Lateral 5eTools (Deslizar para Esquerda) */
+        #bestiaryDrawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 88%;
+            max-width: 420px;
+            background-color: #0f172a;
+            border-left: 1px solid #334155;
+            z-index: 50;
+            transform: translateX(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -10px 0 25px rgba(0, 0, 0, 0.7);
+        }
+
+        #bestiaryDrawer.drawer-open {
+            transform: translateX(0);
+        }
+
+        #drawerBackdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 45;
+            backdrop-filter: blur(2px);
         }
     </style>
 </head>
 <body class="flex flex-col">
 
     <div id="toast">🧠 Teste de Concentração!</div>
+
+    <!-- Indicador discreto de deslize -->
+    <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-1.5 flex justify-between items-center text-[11px] text-slate-400 shrink-0">
+        <span>D&D Combat Tracker <span class="text-slate-600">v5.2</span></span>
+        <button onclick="openBestiaryDrawer()" class="flex items-center gap-1 text-amber-400 font-semibold hover:underline">
+            <span>⬅️ Bestiário 5eTools</span>
+        </button>
+    </div>
 
     <main class="combat-list p-4 space-y-3" id="combatList"></main>
 
@@ -195,7 +235,55 @@
         </div>
     </footer>
 
-    <!-- Modal Completo 5eTools (Atributos, Perícias, CA, HP, CR, etc.) -->
+    <!-- Backdrop e Gaveta Lateral do Bestiário 5eTools -->
+    <div id="drawerBackdrop" onclick="closeBestiaryDrawer()"></div>
+    <aside id="bestiaryDrawer">
+        <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
+            <div>
+                <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">🐉 Bestiário 5eTools</h2>
+                <p class="text-[11px] text-slate-400">Toque em + para adicionar ao combate</p>
+            </div>
+            <button onclick="closeBestiaryDrawer()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 font-bold">✕</button>
+        </div>
+
+        <div class="p-3 bg-slate-900 border-b border-slate-800 shrink-0">
+            <input type="text" id="bestiarySearchInp" oninput="renderBestiaryList()" placeholder="🔍 Buscar monstro importado..." class="text-sm">
+        </div>
+
+        <div id="bestiaryList" class="drawer-list p-3 space-y-2"></div>
+
+        <!-- Botão de Importar Monstros no final -->
+        <div class="p-4 bg-slate-950 border-t border-slate-800 shrink-0">
+            <button onclick="openImportModal()" class="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
+                📥 Importar Monstros do 5eTools
+            </button>
+        </div>
+    </aside>
+
+    <!-- Modal de Importação JSON do 5eTools -->
+    <div id="importModal" class="modal" style="z-index: 80;">
+        <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold text-amber-400 mb-2">📥 Importar JSON (5eTools)</h2>
+            <p class="text-xs text-slate-400 mb-4">Selecione um arquivo <code class="text-slate-200">.json</code> gerado pelo <b>5etools-monster-grabber</b> ou cole o conteúdo abaixo:</p>
+            
+            <div class="mb-4">
+                <label class="block text-xs text-slate-400 font-bold uppercase mb-1">Carregar Arquivo .JSON</label>
+                <input type="file" id="jsonFileInp" accept=".json,application/json" onchange="handleJsonFileUpload(event)" class="text-xs file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:font-bold hover:file:bg-blue-500">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs text-slate-400 font-bold uppercase mb-1">Ou Cole o JSON Bruto</label>
+                <textarea id="jsonTextInp" rows="7" placeholder='{"name": "Goblin", "size": ["S"], "type": "humanoid", "ac": [15], "hp": {"average": 7}, ...}' class="font-mono text-xs"></textarea>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="closeImportModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 font-bold">Cancelar</button>
+                <button onclick="process5eToolsImport()" class="flex-1 p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white">Salvar no Bestiário</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Completo 5eTools (Cadastro/Edição Manual) -->
     <div id="entityModal" class="modal">
         <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
             <h2 id="modalTitle" class="text-xl font-bold mb-4">Adicionar Entidade (5eTools)</h2>
@@ -236,11 +324,11 @@
                     <input type="text" id="typeAlignInp" placeholder="humanoide (qualquer), neutro">
                 </div>
                 <div class="col-span-2">
-                    <label class="text-xs text-slate-500 font-bold uppercase">Deslocamento (Speed)</label>,
+                    <label class="text-xs text-slate-500 font-bold uppercase">Deslocamento (Speed)</label>
                     <input type="text" id="speedInp" placeholder="9m, voo 12m">
                 </div>
 
-                <!-- Atributos base do 5eTools (STR, DEX, CON, INT, WIS, CHA) -->
+                <!-- Atributos base do 5eTools -->
                 <div class="col-span-2 grid grid-cols-6 gap-1 bg-slate-950 p-2 rounded-xl border border-slate-800 text-center">
                     <div>
                         <span class="text-[10px] text-slate-500 block font-bold">FOR</span>
@@ -289,8 +377,12 @@
                     <input type="text" id="immunitiesInp" placeholder="Resistente a fogo; Imune a veneno">
                 </div>
                 <div class="col-span-2">
-                    <label class="text-xs text-slate-500 font-bold uppercase">Ataque / Ações Resumidas (AtkInfo)</label>
+                    <label class="text-xs text-slate-500 font-bold uppercase">Ataque / Ações Resumidas</label>
                     <input type="text" id="atkInp" placeholder="+5 / 1d8+3 cortante">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-xs text-slate-500 font-bold uppercase">Traços e Ações Completas</label>
+                    <textarea id="traitsActionsInp" rows="3" placeholder="Detalhes de traços e ações do 5eTools..."></textarea>
                 </div>
             </div>
             <div class="flex gap-2 mt-6">
@@ -300,8 +392,8 @@
         </div>
     </div>
 
-    <!-- Modal de Informações Detalhadas do 5eTools (Expandido ao clicar nos detalhes do card) -->
-    <div id="detailsModal" class="modal">
+    <!-- Modal de Informações Detalhadas do 5eTools -->
+    <div id="detailsModal" class="modal" style="z-index: 85;">
         <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
             <h2 id="detailName" class="text-2xl font-bold text-blue-400 mb-1">Nome da Criatura</h2>
             <p id="detailSub" class="text-xs text-slate-400 italic mb-4">Tamanho, Tipo, Alinhamento</p>
@@ -316,13 +408,14 @@
                 <div><strong>Perícias:</strong> <span id="detailSkills">-</span></div>
                 <div><strong>Resistências/Imunidades:</strong> <span id="detailImmunities">-</span></div>
                 <div><strong>Sentidos & Idiomas:</strong> <span id="detailSensesLang">-</span></div>
-                <div><strong>Ataque / Descrição:</strong> <span id="detailAtk">-</span></div>
+                <div><strong>Resumo Ataque:</strong> <span id="detailAtk">-</span></div>
+                <div id="detailFullBlock" class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 whitespace-pre-line hidden"></div>
             </div>
-            <button onclick="closeDetailsModal()" class="w-full mt-6 p-2 rounded-lg bg-slate-700 font-bold">Fechar</button>
+            <button onclick="closeDetailsModal()" class="w-full mt-6 p-2.5 rounded-xl bg-slate-700 font-bold">Fechar</button>
         </div>
     </div>
 
-    <div id="concentrationModal" class="modal" style="z-index: 70;">
+    <div id="concentrationModal" class="modal" style="z-index: 75;">
         <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-sm border border-slate-700 text-center">
             <div class="text-4xl mb-4">🧠</div>
             <h2 class="text-xl font-bold mb-4 text-white">Teste de Concentração</h2>
@@ -340,14 +433,15 @@
 
     <script>
         let combatants = [];
+        let importedMonsters = [];
         let activeTurnId = null; 
         let selectedId = null;
         let round = 1;
         let monsterCounter = 1;
         let playerCounter = 1;
         let currentInput = "0";
-        let lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
-        let lastPlayerData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "humanoide (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
+        let lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
+        let lastPlayerData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "humanoide (qualquer)", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
 
         let pressTimer;
         let startY = 0; 
@@ -361,6 +455,10 @@
 
         let endCombatPressTimer;
         let didEndCombatLongPress = false;
+
+        // Controle de Swipe Horizontal (Arrastar para a Esquerda)
+        let touchStartX = 0;
+        let touchStartY = 0;
 
         window.onload = () => {
             const savedPlayers = localStorage.getItem('dnd_players');
@@ -376,7 +474,6 @@
                     if (!c.conditions) c.conditions = [];
                     if (!c.deathSaves) c.deathSaves = { success: 0, failures: 0 };
                     if (c.stabilized === undefined) c.stabilized = false;
-                    // Garantir campos 5eTools caso carregue salvos antigos
                     if (!c.cr) c.cr = "1";
                     if (!c.size) c.size = "M";
                     if (!c.typeAlign) c.typeAlign = "criatura";
@@ -384,10 +481,16 @@
                     if (!c.attributes) c.attributes = { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 };
                 });
                 playerCounter = pCount + 1;
-                if (lastP) lastPlayerData = { hp: lastP.hpMax, ca: lastP.ca, atk: lastP.atkInfo, cr: lastP.cr, size: lastP.size, typeAlign: lastP.typeAlign, speed: lastP.speed, str: lastP.attributes.str, dex: lastP.attributes.dex, con: lastP.attributes.con, int: lastP.attributes.int, wis: lastP.attributes.wis, cha: lastP.attributes.cha, saves: lastP.saves, skills: lastP.skills, senses: lastP.senses, languages: lastP.languages, immunities: lastP.immunities };
+                if (lastP) lastPlayerData = { hp: lastP.hpMax, ca: lastP.ca, atk: lastP.atkInfo, cr: lastP.cr, size: lastP.size, typeAlign: lastP.typeAlign, speed: lastP.speed, str: lastP.attributes.str, dex: lastP.attributes.dex, con: lastP.attributes.con, int: lastP.attributes.int, wis: lastP.attributes.wis, cha: lastP.attributes.cha, saves: lastP.saves, skills: lastP.skills, senses: lastP.senses, languages: lastP.languages, immunities: lastP.immunities, traitsActions: lastP.traitsActions || "" };
                 if (combatants.length > 0) activeTurnId = combatants[0].id;
                 renderList();
             }
+
+            const savedBestiary = localStorage.getItem('dnd_5etools_bestiary');
+            if (savedBestiary) {
+                importedMonsters = JSON.parse(savedBestiary);
+            }
+            renderBestiaryList();
 
             const list = document.getElementById('combatList');
             list.addEventListener('mousedown', handleCardPressStart);
@@ -402,7 +505,339 @@
             list.addEventListener('mouseleave', handleCardPressEnd);
             list.addEventListener('touchend', handleCardPressEnd);
             list.addEventListener('click', handleListClick);
+
+            // Detecção de Gesto de Arrastar (Swipe) na Tela
+            document.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, {passive: true});
+
+            document.addEventListener('touchend', (e) => {
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndY = e.changedTouches[0].screenY;
+                handleSwipeGesture(touchStartX, touchStartY, touchEndX, touchEndY);
+            }, {passive: true});
         };
+
+        function handleSwipeGesture(startX, startY, endX, endY) {
+            const diffX = endX - startX;
+            const diffY = endY - startY;
+            // Garante que foi um movimento predominantemente horizontal maior que 75px
+            if (Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+                if (diffX < 0) {
+                    // Arrastou para a esquerda -> Abre Bestiário 5eTools
+                    openBestiaryDrawer();
+                } else {
+                    // Arrastou para a direita -> Fecha Bestiário 5eTools
+                    closeBestiaryDrawer();
+                }
+            }
+        }
+
+        function openBestiaryDrawer() {
+            document.getElementById('bestiaryDrawer').classList.add('drawer-open');
+            document.getElementById('drawerBackdrop').style.display = 'block';
+            renderBestiaryList();
+        }
+
+        function closeBestiaryDrawer() {
+            document.getElementById('bestiaryDrawer').classList.remove('drawer-open');
+            document.getElementById('drawerBackdrop').style.display = 'none';
+        }
+
+        function openImportModal() {
+            document.getElementById('jsonFileInp').value = "";
+            document.getElementById('jsonTextInp').value = "";
+            document.getElementById('importModal').style.display = 'flex';
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+        }
+
+        function handleJsonFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('jsonTextInp').value = e.target.result;
+            };
+            reader.readAsText(file);
+        }
+
+        // Conversor do formato JSON 5eTools / 5etools-monster-grabber para a ficha do app
+        function parse5eToolsMonster(raw) {
+            const sizeMap = { T: 'T', S: 'S', M: 'M', L: 'G', H: 'H', G: 'C' };
+            const rawSize = Array.isArray(raw.size) ? raw.size[0] : (raw.size || 'M');
+            const size = sizeMap[rawSize] || rawSize;
+
+            let typeAlign = '';
+            if (typeof raw.type === 'string') {
+                typeAlign = raw.type;
+            } else if (raw.type && typeof raw.type === 'object') {
+                typeAlign = raw.type.type || '';
+                if (Array.isArray(raw.type.tags)) typeAlign += ` (${raw.type.tags.join(', ')})`;
+            }
+            if (Array.isArray(raw.alignment)) {
+                typeAlign += `, ${raw.alignment.join('')}`;
+            }
+
+            let ca = '10';
+            if (Array.isArray(raw.ac) && raw.ac.length > 0) {
+                const firstAc = raw.ac[0];
+                if (typeof firstAc === 'number') ca = String(firstAc);
+                else if (typeof firstAc === 'object') {
+                    ca = firstAc.ac ? String(firstAc.ac) : '10';
+                    if (Array.isArray(firstAc.from)) ca += ` (${firstAc.from.join(', ').replace(/\{@[^ ]+ ([^}|]+)(?:\|[^}]*)?\}/g, '$1')})`;
+                }
+            } else if (typeof raw.ac === 'number' || typeof raw.ac === 'string') {
+                ca = String(raw.ac);
+            }
+
+            let hpMax = 10;
+            if (raw.hp) {
+                if (typeof raw.hp === 'number') hpMax = raw.hp;
+                else if (raw.hp.average) hpMax = parseInt(raw.hp.average) || 10;
+                else if (raw.hp.special) hpMax = parseInt(raw.hp.special) || 10;
+            }
+
+            let speed = '9m';
+            if (raw.speed && typeof raw.speed === 'object') {
+                speed = Object.entries(raw.speed)
+                    .map(([k, v]) => {
+                        const val = typeof v === 'object' ? v.number : v;
+                        return k === 'walk' ? `${val} ft.` : `${k} ${val} ft.`;
+                    })
+                    .join(', ');
+            } else if (typeof raw.speed === 'string') {
+                speed = raw.speed;
+            }
+
+            const attributes = {
+                str: parseInt(raw.str) || 10,
+                dex: parseInt(raw.dex) || 10,
+                con: parseInt(raw.con) || 10,
+                int: parseInt(raw.int) || 10,
+                wis: parseInt(raw.wis) || 10,
+                cha: parseInt(raw.cha) || 10
+            };
+
+            const saves = raw.save ? Object.entries(raw.save).map(([k, v]) => `${k.toUpperCase()} ${v}`).join(', ') : '';
+            const skills = raw.skill ? Object.entries(raw.skill).map(([k, v]) => `${k} ${v}`).join(', ') : '';
+            const senses = Array.isArray(raw.senses) ? raw.senses.join(', ') : (raw.passive ? `Percepção passiva ${raw.passive}` : '');
+            const languages = Array.isArray(raw.languages) ? raw.languages.join(', ') : (raw.languages || '');
+
+            const immParts = [];
+            if (Array.isArray(raw.vulnerable)) immParts.push(`Vuln: ${raw.vulnerable.join(', ')}`);
+            if (Array.isArray(raw.resist)) immParts.push(`Res: ${raw.resist.map(r => typeof r === 'string' ? r : (r.resist || []).join(', ')).join(', ')}`);
+            if (Array.isArray(raw.immune)) immParts.push(`Imun: ${raw.immune.map(i => typeof i === 'string' ? i : (i.immune || []).join(', ')).join(', ')}`);
+            if (Array.isArray(raw.conditionImmune)) immParts.push(`Cond: ${raw.conditionImmune.join(', ')}`);
+            const immunities = immParts.join(' | ');
+
+            const cr = typeof raw.cr === 'object' ? (raw.cr.cr || '1') : (raw.cr || '1');
+
+            const cleanTags = (txt) => String(txt || '').replace(/\{@[^ ]+ ([^}|]+)(?:\|[^}]*)?\}/g, '$1');
+
+            let atkSummary = '-';
+            const fullLines = [];
+
+            const extractEntries = (list, label) => {
+                if (!Array.isArray(list)) return;
+                fullLines.push(`=== ${label} ===`);
+                list.forEach(item => {
+                    const text = Array.isArray(item.entries) ? item.entries.map(e => typeof e === 'string' ? cleanTags(e) : JSON.stringify(e)).join(' ') : '';
+                    fullLines.push(`• ${item.name}: ${text}`);
+                });
+            };
+
+            extractEntries(raw.trait, 'TRAÇOS');
+            extractEntries(raw.action, 'AÇÕES');
+            extractEntries(raw.bonus, 'AÇÕES BÔNUS');
+            extractEntries(raw.reaction, 'REAÇÕES');
+            extractEntries(raw.legendary, 'AÇÕES LENDÁRIAS');
+
+            if (Array.isArray(raw.action) && raw.action.length > 0) {
+                const firstAction = raw.action[0];
+                const rawEntry = Array.isArray(firstAction.entries) ? String(firstAction.entries[0] || '') : '';
+                const hitMatch = rawEntry.match(/\{@hit ([+-]?\d+)\}/);
+                const dmgMatch = rawEntry.match(/\{@damage ([^}]+)\}/);
+                if (hitMatch || dmgMatch) {
+                    const hitStr = hitMatch ? (hitMatch[1].startsWith('+') || hitMatch[1].startsWith('-') ? hitMatch[1] : `+${hitMatch[1]}`) : '';
+                    const dmgStr = dmgMatch ? dmgMatch[1] : '';
+                    atkSummary = `${firstAction.name}: ${hitStr} ${dmgStr ? '(' + dmgStr + ')' : ''}`.trim();
+                } else {
+                    atkSummary = firstAction.name || '-';
+                }
+            }
+
+            return {
+                id: '5et_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                name: raw.name || 'Monstro Desconhecido',
+                cr: String(cr),
+                size,
+                typeAlign: typeAlign || 'criatura',
+                ca,
+                hpMax,
+                speed,
+                attributes,
+                saves,
+                skills,
+                senses,
+                languages,
+                immunities,
+                atkInfo: atkSummary,
+                traitsActions: fullLines.join('\n')
+            };
+        }
+
+        function process5eToolsImport() {
+            const rawText = document.getElementById('jsonTextInp').value.trim();
+            if (!rawText) {
+                showToast('⚠️ Cole ou carregue um JSON!');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(rawText);
+                let monstersArray = [];
+
+                if (Array.isArray(parsed)) {
+                    monstersArray = parsed;
+                } else if (parsed.monster && Array.isArray(parsed.monster)) {
+                    monstersArray = parsed.monster;
+                } else if (typeof parsed === 'object' && parsed.name) {
+                    monstersArray = [parsed];
+                } else {
+                    showToast('⚠️ Formato JSON não reconhecido!');
+                    return;
+                }
+
+                let addedCount = 0;
+                monstersArray.forEach(m => {
+                    const formatted = parse5eToolsMonster(m);
+                    // Evita duplicar monstros com o mesmo nome exato (atualiza se já existir)
+                    const existingIdx = importedMonsters.findIndex(item => item.name.toLowerCase() === formatted.name.toLowerCase());
+                    if (existingIdx !== -1) {
+                        importedMonsters[existingIdx] = formatted;
+                    } else {
+                        importedMonsters.push(formatted);
+                    }
+                    addedCount++;
+                });
+
+                localStorage.setItem('dnd_5etools_bestiary', JSON.stringify(importedMonsters));
+                renderBestiaryList();
+                closeImportModal();
+                showToast(`✅ ${addedCount} monstro(s) importado(s)!`);
+            } catch (err) {
+                console.error(err);
+                showToast('❌ Erro ao ler JSON! Verifique o texto.');
+            }
+        }
+
+        function renderBestiaryList() {
+            const container = document.getElementById('bestiaryList');
+            const query = (document.getElementById('bestiarySearchInp')?.value || '').toLowerCase();
+            container.innerHTML = '';
+
+            const filtered = importedMonsters.filter(m => m.name.toLowerCase().includes(query));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-500 text-sm mt-10 px-4">
+                        Nenhum monstro encontrado no bestiário.<br>
+                        Use o botão abaixo para importar arquivos JSON do <b>5eTools</b>.
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(m => {
+                const item = document.createElement('div');
+                item.className = "bg-slate-800/90 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2";
+                item.innerHTML = `
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-100 truncate">${m.name}</span>
+                            <span class="text-[10px] bg-slate-950 text-amber-400 px-1.5 py-0.5 rounded font-mono border border-slate-700 shrink-0">CR ${m.cr}</span>
+                        </div>
+                        <p class="text-xs text-slate-400 truncate mt-0.5">CA ${m.ca} | HP ${m.hpMax} | ${m.typeAlign}</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button onclick="openBestiaryDetails('${m.id}')" class="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs" title="Ver Ficha">🔍</button>
+                        <button onclick="deleteImportedMonster('${m.id}')" class="p-2 bg-red-950/70 hover:bg-red-900 text-red-400 rounded-lg text-xs" title="Excluir do Bestiário">🗑️</button>
+                        <button onclick="spawnMonsterToCombat('${m.id}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs shadow">＋ Combate</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function deleteImportedMonster(id) {
+            importedMonsters = importedMonsters.filter(m => m.id !== id);
+            localStorage.setItem('dnd_5etools_bestiary', JSON.stringify(importedMonsters));
+            renderBestiaryList();
+        }
+
+        function openBestiaryDetails(id) {
+            const m = importedMonsters.find(item => item.id === id);
+            if (!m) return;
+            populateDetailsModal(m);
+        }
+
+        function spawnMonsterToCombat(id) {
+            const template = importedMonsters.find(m => m.id === id);
+            if (!template) return;
+
+            // Numera automaticamente caso já exista um monstro com o mesmo nome no combate
+            const sameNameCount = combatants.filter(c => c.type === 'monster' && c.baseName === template.name).length;
+            const displayName = sameNameCount > 0 ? `${template.name} ${sameNameCount + 1}` : template.name;
+
+            // Rola iniciativa automaticamente usando modificador de Destreza (DEX) do monstro
+            const dexMod = Math.floor(((template.attributes?.dex || 10) - 10) / 2);
+            const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
+
+            let isHighestInit = false;
+            if (combatants.length === 0) {
+                isHighestInit = true;
+            } else {
+                const maxInit = Math.max(...combatants.map(c => c.initiative));
+                if (rolledInit >= maxInit) isHighestInit = true;
+            }
+
+            const newEntity = {
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                baseName: template.name,
+                name: displayName,
+                initiative: rolledInit,
+                hpMax: template.hpMax,
+                hpCurrent: template.hpMax,
+                ca: template.ca,
+                atkInfo: template.atkInfo,
+                type: 'monster',
+                cr: template.cr,
+                size: template.size,
+                typeAlign: template.typeAlign,
+                speed: template.speed,
+                attributes: { ...template.attributes },
+                saves: template.saves,
+                skills: template.skills,
+                senses: template.senses,
+                languages: template.languages,
+                immunities: template.immunities,
+                traitsActions: template.traitsActions || '',
+                statusBrain: false,
+                conditions: [],
+                deathSaves: { success: 0, failures: 0 },
+                stabilized: false
+            };
+
+            combatants.push(newEntity);
+            sortCombatants();
+            if (isHighestInit) activeTurnId = newEntity.id;
+            renderList(true);
+            showToast(`🧌 ${displayName} entrou (Init ${rolledInit})!`);
+        }
 
         function handleCardPressStart(e) {
             const card = e.target.closest('.combat-card');
@@ -427,7 +862,6 @@
 
             if (e.target.closest('.delete-overlay')) return;
 
-            // Botão de abrir ficha detalhada 5eTools
             const detailBtn = e.target.closest('.detail-btn');
             if (detailBtn) {
                 const id = parseInt(detailBtn.dataset.id);
@@ -482,6 +916,7 @@
             document.getElementById('sensesInp').value = ref.senses || "";
             document.getElementById('languagesInp').value = ref.languages || "";
             document.getElementById('immunitiesInp').value = ref.immunities || "";
+            document.getElementById('traitsActionsInp').value = ref.traitsActions || "";
 
             document.getElementById('entityModal').style.display = 'flex';
         }
@@ -490,14 +925,11 @@
             document.getElementById('entityModal').style.display = 'none';
         }
 
-        function openDetailsModal(id) {
-            const c = combatants.find(item => item.id === id);
-            if (!c) return;
-
+        function populateDetailsModal(c) {
             document.getElementById('detailName').innerText = c.name;
-            document.getElementById('detailSub').innerText = `Tamanho: ${c.size || 'M'} | Tipo: ${c.typeAlign || 'Criatura'} | Alinhamento`;
+            document.getElementById('detailSub').innerText = `Tamanho: ${c.size || 'M'} | Tipo: ${c.typeAlign || 'Criatura'}`;
             document.getElementById('detailCa').innerText = c.ca;
-            document.getElementById('detailHp').innerText = `${c.hpCurrent}/${c.hpMax}`;
+            document.getElementById('detailHp').innerText = c.hpCurrent !== undefined ? `${c.hpCurrent}/${c.hpMax}` : `${c.hpMax}`;
             document.getElementById('detailCr').innerText = c.cr || '1';
             document.getElementById('detailSpeed').innerText = c.speed || '9m';
 
@@ -521,7 +953,21 @@
             document.getElementById('detailSensesLang').innerText = `Sentidos: ${c.senses || 'Padrão'} | Idiomas: ${c.languages || 'Comum'}`;
             document.getElementById('detailAtk').innerText = c.atkInfo || 'Nenhum';
 
+            const fullBlock = document.getElementById('detailFullBlock');
+            if (c.traitsActions && c.traitsActions.trim() !== '') {
+                fullBlock.innerText = c.traitsActions;
+                fullBlock.classList.remove('hidden');
+            } else {
+                fullBlock.classList.add('hidden');
+            }
+
             document.getElementById('detailsModal').style.display = 'flex';
+        }
+
+        function openDetailsModal(id) {
+            const c = combatants.find(item => item.id === id);
+            if (!c) return;
+            populateDetailsModal(c);
         }
 
         function closeDetailsModal() {
@@ -553,13 +999,14 @@
             const senses = document.getElementById('sensesInp').value;
             const languages = document.getElementById('languagesInp').value;
             const immunities = document.getElementById('immunitiesInp').value;
+            const traitsActions = document.getElementById('traitsActionsInp').value;
 
             if (!name) return;
 
             let newlyAddedId = null;
             let isHighestInit = false;
 
-            const payloadData = { hp, ca, atk, cr, size, typeAlign, speed, str: attributes.str, dex: attributes.dex, con: attributes.con, int: attributes.int, wis: attributes.wis, cha: attributes.cha, saves, skills, senses, languages, immunities };
+            const payloadData = { hp, ca, atk, cr, size, typeAlign, speed, str: attributes.str, dex: attributes.dex, con: attributes.con, int: attributes.int, wis: attributes.wis, cha: attributes.cha, saves, skills, senses, languages, immunities, traitsActions };
 
             if (editingId) {
                 const index = combatants.findIndex(c => c.id === editingId);
@@ -580,6 +1027,7 @@
                     combatants[index].senses = senses;
                     combatants[index].languages = languages;
                     combatants[index].immunities = immunities;
+                    combatants[index].traitsActions = traitsActions;
                     
                     if (combatants[index].type === 'player') savePlayersToStorage();
                 }
@@ -612,6 +1060,7 @@
                     senses,
                     languages,
                     immunities,
+                    traitsActions,
                     statusBrain: false,
                     conditions: [],
                     deathSaves: { success: 0, failures: 0 },
@@ -674,6 +1123,7 @@
             document.getElementById('sensesInp').value = c.senses || "";
             document.getElementById('languagesInp').value = c.languages || "";
             document.getElementById('immunitiesInp').value = c.immunities || "";
+            document.getElementById('traitsActionsInp').value = c.traitsActions || "";
             
             document.getElementById('entityModal').style.display = 'flex';
         }
@@ -802,7 +1252,7 @@
             activeTurnId = null;
             round = 1;
             monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
+            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
             selectedId = null;
             deleteVisibleId = null;
             document.getElementById('targetName').innerText = "Nenhum";
@@ -830,7 +1280,7 @@
             activeTurnId = combatants.length > 0 ? combatants[0].id : null;
             round = 1;
             monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "" };
+            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "9m", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
             selectedId = null;
             deleteVisibleId = null;
             document.getElementById('targetName').innerText = "Nenhum";
@@ -858,7 +1308,7 @@
             container.innerHTML = "";
 
             if (combatants.length === 0) {
-                container.innerHTML = `<div class="text-slate-600 text-center mt-10">Lista vazia.</div>`;
+                container.innerHTML = `<div class="text-slate-600 text-center mt-10">Lista vazia.<br><span class="text-xs text-slate-700">Deslize para a esquerda para abrir o Bestiário 5eTools</span></div>`;
                 return;
             }
 
@@ -943,14 +1393,14 @@
                 card.innerHTML += `
                     <div class="hp-bar absolute left-0 top-0 bottom-0 z-0 opacity-20 transition-all duration-500" style="width: ${pct}%; background-color: ${hpBarColor};"></div>
                     <div class="relative z-10 flex items-center justify-between px-2 w-full h-full min-h-[64px]">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 min-w-0 flex-1">
                             <div class="init-circle ${activeTurnId === c.id && !isEliminated ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300'} font-bold w-10 h-10 flex items-center justify-center rounded-full text-lg shrink-0 my-1">
                                 ${c.initiative}
                             </div>
                             <div class="py-1 flex-1 min-w-0">
                                 <div class="flex items-center gap-2">
                                     <h3 class="font-bold text-lg leading-none truncate ${c.type === 'monster' ? 'text-red-400' : ''}">${c.name}</h3>
-                                    <button data-id="${c.id}" class="detail-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-1.5 py-0.5 rounded font-mono border border-slate-600" title="Ver Ficha 5eTools">CR ${c.cr || '1'} 🔍</button>
+                                    <button data-id="${c.id}" class="detail-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-1.5 py-0.5 rounded font-mono border border-slate-600 shrink-0" title="Ver Ficha 5eTools">CR ${c.cr || '1'} 🔍</button>
                                 </div>
                                 <p class="text-slate-300 text-sm font-semibold tracking-tight leading-none mt-1.5 truncate">CA: ${c.ca} | ${c.atkInfo}</p>
                             </div>
@@ -1193,7 +1643,8 @@
             let changed = false;
             combatants.forEach(c => {
                 if (c.type === 'monster') {
-                    c.initiative = Math.floor(Math.random() * 20) + 1;
+                    const dexMod = Math.floor(((c.attributes?.dex || 10) - 10) / 2);
+                    c.initiative = Math.floor(Math.random() * 20) + 1 + dexMod;
                     changed = true;
                 }
             });
@@ -1202,6 +1653,7 @@
                 sortCombatants();
                 renderList(true);
                 clearDisplay();
+                showToast('🎲 Iniciativas roladas (+DES)!');
             }
         }
 
