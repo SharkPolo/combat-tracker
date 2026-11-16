@@ -151,7 +151,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="openModal('player')" class="btn-control hover:bg-blue-900/40 border-blue-900/50" title="Add Jogador">🧙‍♂️</button>
                     <button onclick="openModal('monster')" class="btn-control hover:bg-slate-700" title="Add Monstro">🧌</button>
-                    <button onclick="endCombat()" onmousedown="startEndCombatPress(event)" onmouseup="cancelEndCombatPress(event)" onmouseleave="cancelEndCombatPress(event)" ontouchstart="startEndCombatPress(event)" ontouchend="cancelEndCombatPress(event)" class="btn-control hover:bg-red-900/40 border-red-900/50" title="Terminar Combate (Segure 3s para apagar tudo)">❌</button>
+                    <button onmousedown="startEndCombatPress(event)" onmouseup="cancelEndCombatPress(event)" onmouseleave="cancelEndCombatPress(event)" ontouchstart="startEndCombatPress(event)" ontouchend="cancelEndCombatPress(event)" class="btn-control hover:bg-red-900/40 border-red-900/50" title="Segure 3s para terminar o combate">❌</button>
                     <button onclick="nextTurn()" class="btn-control hover:bg-amber-900/40 border-amber-900/50" title="Próximo">⏩</button>
                     <button onclick="openConditionMenu()" class="btn-control hover:bg-slate-700" title="Condições">🌀</button>
                     <button onclick="toggleBrainStatus()" class="btn-control hover:bg-slate-700" title="Concentração (🧠)">🧠</button>
@@ -449,10 +449,8 @@
             if (!speedStr) return '6 qd';
             const raw = String(speedStr).trim();
 
-            // Pega o deslocamento principal antes da primeira vírgula
             const mainPart = raw.split(',')[0].trim();
 
-            // Se estiver em metros (ex: "9m" ou "9 m"), divide por 1.5m por quadrado
             const meterMatch = mainPart.match(/(\d+(?:[.,]\d+)?)\s*m\b/i);
             if (meterMatch) {
                 const meters = parseFloat(meterMatch[1].replace(',', '.'));
@@ -460,7 +458,6 @@
                 return `${squares} qd`;
             }
 
-            // Padrão 5eTools em feet (ex: "30 ft." ou "30"): divide por 5 feet por quadrado
             const feetMatch = mainPart.match(/(\d+)/);
             if (feetMatch) {
                 const feet = parseInt(feetMatch[1], 10);
@@ -1233,36 +1230,23 @@
         }
 
         function startEndCombatPress(event) {
+            if (event.type === 'touchstart') event.preventDefault();
             didEndCombatLongPress = false;
             endCombatPressTimer = window.setTimeout(() => {
                 didEndCombatLongPress = true;
-                hardResetCombat();
+                endCombat();
+                showToast('🏁 Combate encerrado!');
             }, 3000); 
         }
 
         function cancelEndCombatPress(event) {
             window.clearTimeout(endCombatPressTimer);
-        }
-
-        function hardResetCombat() {
-            combatants = [];
-            savePlayersToStorage();
-            activeTurnId = null;
-            round = 1;
-            monsterCounter = 1;
-            lastMonsterData = { hp: "", ca: "", atk: "", cr: "1", size: "M", typeAlign: "monstro", speed: "30 ft.", str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10, saves: "", skills: "", senses: "", languages: "", immunities: "", traitsActions: "" };
-            selectedId = null;
-            deleteVisibleId = null;
-            document.getElementById('targetName').innerText = "Nenhum";
-            renderList(true);
+            if (!didEndCombatLongPress && (event.type === 'mouseup' || event.type === 'touchend')) {
+                showToast('⏳ Segure 3s para terminar o combate');
+            }
         }
 
         function endCombat() {
-            if (didEndCombatLongPress) {
-                didEndCombatLongPress = false;
-                return;
-            }
-
             combatants = combatants.filter(c => c.type === 'player');
             combatants.forEach(c => {
                 c.initiative = 0;
