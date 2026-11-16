@@ -25,7 +25,7 @@
             -webkit-user-select: none;
         }
 
-        .combat-list, .drawer-list {
+        .combat-list {
             flex-grow: 1;
             overflow-y: auto;
             scroll-behavior: smooth;
@@ -40,8 +40,8 @@
             border-left: 6px solid #fbbf24 !important;
         }
 
-        .combat-list::-webkit-scrollbar, .drawer-list::-webkit-scrollbar { width: 4px; }
-        .combat-list::-webkit-scrollbar-thumb, .drawer-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        .combat-list::-webkit-scrollbar { width: 4px; }
+        .combat-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
 
         .numpad-grid {
             display: grid;
@@ -132,50 +132,11 @@
             justify-content: center;
             z-index: 70;
         }
-
-        /* Gaveta Lateral 5eTools (Deslizar para Esquerda) */
-        #bestiaryDrawer {
-            position: fixed;
-            top: 0;
-            right: 0;
-            bottom: 0;
-            width: 88%;
-            max-width: 420px;
-            background-color: #0f172a;
-            border-left: 1px solid #334155;
-            z-index: 50;
-            transform: translateX(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            box-shadow: -10px 0 25px rgba(0, 0, 0, 0.7);
-        }
-
-        #bestiaryDrawer.drawer-open {
-            transform: translateX(0);
-        }
-
-        #drawerBackdrop {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 45;
-            backdrop-filter: blur(2px);
-        }
     </style>
 </head>
 <body class="flex flex-col">
 
     <div id="toast">🧠 Teste de Concentração!</div>
-
-    <!-- Indicador discreto de deslize -->
-    <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-1.5 flex justify-between items-center text-[11px] text-slate-400 shrink-0">
-        <span>D&D Combat Tracker <span class="text-slate-600">v5.3</span></span>
-        <button onclick="openBestiaryDrawer()" class="flex items-center gap-1 text-amber-400 font-semibold hover:underline">
-            <span>⬅️ Bestiário 5eTools</span>
-        </button>
-    </div>
 
     <main class="combat-list p-4 space-y-3" id="combatList"></main>
 
@@ -235,58 +196,10 @@
         </div>
     </footer>
 
-    <!-- Backdrop e Gaveta Lateral do Bestiário 5eTools -->
-    <div id="drawerBackdrop" onclick="closeBestiaryDrawer()"></div>
-    <aside id="bestiaryDrawer">
-        <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between shrink-0">
-            <div>
-                <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2">🐉 Bestiário 5eTools</h2>
-                <p class="text-[11px] text-slate-400">Toque em + para adicionar ao combate</p>
-            </div>
-            <button onclick="closeBestiaryDrawer()" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 font-bold">✕</button>
-        </div>
-
-        <div class="p-3 bg-slate-900 border-b border-slate-800 shrink-0">
-            <input type="text" id="bestiarySearchInp" oninput="renderBestiaryList()" placeholder="🔍 Buscar monstro salvo..." class="text-sm">
-        </div>
-
-        <div id="bestiaryList" class="drawer-list p-3 space-y-2"></div>
-
-        <!-- Botão de Importar Monstros no final -->
-        <div class="p-4 bg-slate-950 border-t border-slate-800 shrink-0">
-            <button onclick="openImportModal()" class="w-full py-3 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95">
-                📥 Importar Monstros do 5eTools
-            </button>
-        </div>
-    </aside>
-
-    <!-- Modal de Importação JSON do 5eTools -->
-    <div id="importModal" class="modal" style="z-index: 80;">
-        <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
-            <h2 class="text-xl font-bold text-amber-400 mb-2">📥 Importar JSON (5eTools)</h2>
-            <p class="text-xs text-slate-400 mb-4">Selecione um arquivo <code class="text-slate-200">.json</code> gerado pelo <b>5etools-monster-grabber</b> ou cole o conteúdo abaixo:</p>
-            
-            <div class="mb-4">
-                <label class="block text-xs text-slate-400 font-bold uppercase mb-1">Carregar Arquivo .JSON</label>
-                <input type="file" id="jsonFileInp" accept=".json,application/json" onchange="handleJsonFileUpload(event)" class="text-xs file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:font-bold hover:file:bg-blue-500">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-xs text-slate-400 font-bold uppercase mb-1">Ou Cole o JSON Bruto</label>
-                <textarea id="jsonTextInp" rows="7" placeholder='{"name": "Goblin", "size": ["S"], "type": "humanoid", "ac": [15], "hp": {"average": 7}, ...}' class="font-mono text-xs"></textarea>
-            </div>
-
-            <div class="flex gap-2">
-                <button onclick="closeImportModal()" class="flex-1 p-2.5 rounded-xl bg-slate-700 font-bold">Cancelar</button>
-                <button onclick="process5eToolsImport()" class="flex-1 p-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white">Salvar no Bestiário</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Completo 5eTools (Cadastro/Edição + Busca Online 5eTools) -->
     <div id="entityModal" class="modal">
         <div class="bg-slate-900 p-6 rounded-2xl w-full max-w-lg border border-slate-700 max-h-[90vh] overflow-y-auto">
-            <h2 id="modalTitle" class="text-xl font-bold mb-3">Adicionar Entidade (5eTools)</h2>
+            <h2 id="modalTitle" class="text-xl font-bold mb-3">Adicionar Entidade</h2>
 
             <!-- Caixa de Pesquisa Direta no 5eTools (Visível ao adicionar monstro) -->
             <div id="fiveToolsSearchBox" class="mb-4 bg-slate-950 p-3 rounded-xl border border-amber-500/40">
@@ -298,7 +211,6 @@
                     <input type="text" id="fiveToolsQueryInp" oninput="search5eToolsMonsters()" placeholder="Digite em inglês: Skeleton, Goblin, Orc, Dragon..." class="text-sm border-slate-700 focus:border-amber-400 outline-none">
                     <button type="button" onclick="sync5eToolsDatabase(true)" class="px-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs shrink-0" title="Sincronizar livros do 5eTools">🔄</button>
                 </div>
-                <!-- Lista de Resultados da Pesquisa -->
                 <div id="fiveToolsSearchResults" class="mt-2 max-h-40 overflow-y-auto space-y-1 hidden"></div>
             </div>
 
@@ -320,8 +232,8 @@
                     <input type="number" id="hpInp" placeholder="10">
                 </div>
                 <div>
-                    <label class="text-xs text-slate-500 font-bold uppercase">CA (Armor Class)</label>
-                    <input type="text" id="caInp" placeholder="15 ou 15 (Leather)">
+                    <label class="text-xs text-slate-500 font-bold uppercase">CA (Valor Numérico)</label>
+                    <input type="number" id="caInp" placeholder="13">
                 </div>
                 <div>
                     <label class="text-xs text-slate-500 font-bold uppercase">Tamanho (Size)</label>
@@ -392,8 +304,8 @@
                     <input type="text" id="immunitiesInp" placeholder="Resistente a fogo; Imune a veneno">
                 </div>
                 <div class="col-span-2">
-                    <label class="text-xs text-slate-500 font-bold uppercase">Ataque / Ações Resumidas</label>
-                    <input type="text" id="atkInp" placeholder="+5 / 1d8+3 cortante">
+                    <label class="text-xs text-slate-500 font-bold uppercase">Ataque / Dano (Ex: +4/1d6+2)</label>
+                    <input type="text" id="atkInp" placeholder="+4/1d6+2">
                 </div>
                 <div class="col-span-2">
                     <label class="text-xs text-slate-500 font-bold uppercase">Traços e Ações Completas</label>
@@ -448,8 +360,7 @@
 
     <script>
         let combatants = [];
-        let importedMonsters = [];
-        let remote5eToolsCache = []; // Cache dos monstros baixados do 5eTools
+        let remote5eToolsCache = [];
         let activeTurnId = null; 
         let selectedId = null;
         let round = 1;
@@ -472,11 +383,6 @@
         let endCombatPressTimer;
         let didEndCombatLongPress = false;
 
-        // Controle de Swipe Horizontal (Arrastar para a Esquerda)
-        let touchStartX = 0;
-        let touchStartY = 0;
-
-        // Fontes públicas do Bestiário 5eTools (Monster Manual, Volo, Mordenkainen, Fizban, Monsters of the Multiverse)
         const FIVETOOLS_SOURCES = [
             'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-mm.json',
             'https://raw.githubusercontent.com/5etools-mirror-3/5etools-src/main/data/bestiary/bestiary-vgm.json',
@@ -511,13 +417,6 @@
                 renderList();
             }
 
-            const savedBestiary = localStorage.getItem('dnd_5etools_bestiary');
-            if (savedBestiary) {
-                importedMonsters = JSON.parse(savedBestiary);
-            }
-            renderBestiaryList();
-
-            // Carrega cache do 5eTools se já sincronizado anteriormente
             const saved5eCache = localStorage.getItem('dnd_5etools_online_index');
             if (saved5eCache) {
                 try {
@@ -540,21 +439,8 @@
             list.addEventListener('mouseleave', handleCardPressEnd);
             list.addEventListener('touchend', handleCardPressEnd);
             list.addEventListener('click', handleListClick);
-
-            // Detecção de Gesto de Arrastar (Swipe) na Tela
-            document.addEventListener('touchstart', (e) => {
-                touchStartX = e.changedTouches[0].screenX;
-                touchStartY = e.changedTouches[0].screenY;
-            }, {passive: true});
-
-            document.addEventListener('touchend', (e) => {
-                const touchEndX = e.changedTouches[0].screenX;
-                const touchEndY = e.changedTouches[0].screenY;
-                handleSwipeGesture(touchStartX, touchStartY, touchEndX, touchEndY);
-            }, {passive: true});
         };
 
-        // Sincroniza e indexa os livros do 5eTools no navegador
         async function sync5eToolsDatabase(force = false) {
             const statusEl = document.getElementById('fiveToolsSyncStatus');
             if (!force && remote5eToolsCache.length > 0) {
@@ -572,7 +458,6 @@
                 results.forEach(res => {
                     if (res.status === 'fulfilled' && res.value && Array.isArray(res.value.monster)) {
                         res.value.monster.forEach(m => {
-                            // Ignora variantes de cópia incompleta sem HP/AC se houver
                             if (m.name && (m.hp || m.ac)) {
                                 allRawMonsters.push(m);
                             }
@@ -585,7 +470,6 @@
                     try {
                         localStorage.setItem('dnd_5etools_online_index', JSON.stringify(allRawMonsters));
                     } catch (storageErr) {
-                        // Se exceder cota de localStorage, mantém em memória na sessão
                         console.warn('Cache mantido apenas em RAM:', storageErr);
                     }
                     statusEl.innerText = `${remote5eToolsCache.length} criaturas indexadas ✅`;
@@ -599,7 +483,6 @@
             }
         }
 
-        // Busca em tempo real enquanto digita no modal de Novo Monstro
         function search5eToolsMonsters() {
             const query = (document.getElementById('fiveToolsQueryInp').value || '').trim().toLowerCase();
             const resultsBox = document.getElementById('fiveToolsSearchResults');
@@ -615,7 +498,6 @@
                 return;
             }
 
-            // Prioriza monstros que começam com o termo digitado (ex: "Skeleton" aparece antes de "Giant Skeleton")
             const startsWith = [];
             const includes = [];
 
@@ -657,7 +539,6 @@
                         <button type="button" onclick="apply5eToolsSearchResult(${idx}, true)" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded" title="Adicionar direto ao combate">＋ Direto</button>
                     </div>
                 `;
-                // Guarda referência temporária no elemento
                 row.dataset.rawJson = JSON.stringify(rawMonster);
                 resultsBox.appendChild(row);
             });
@@ -671,29 +552,58 @@
             const rawMonster = JSON.parse(row.dataset.rawJson);
             const parsed = parse5eToolsMonster(rawMonster);
 
-            // Salva automaticamente no Bestiário Local (gaveta esquerda) para uso offline futuro
-            const existingIdx = importedMonsters.findIndex(item => item.name.toLowerCase() === parsed.name.toLowerCase());
-            if (existingIdx !== -1) {
-                importedMonsters[existingIdx] = parsed;
-            } else {
-                importedMonsters.push(parsed);
-            }
-            localStorage.setItem('dnd_5etools_bestiary', JSON.stringify(importedMonsters));
-            renderBestiaryList();
-
-            if (spawnImmediately) {
-                closeModal();
-                spawnMonsterToCombat(parsed.id);
-                return;
-            }
-
-            // Preenche todos os campos do modal com os dados da criatura encontrada
             const sameNameCount = combatants.filter(c => c.type === 'monster' && (c.baseName === parsed.name || c.name === parsed.name)).length;
             const suggestedName = sameNameCount > 0 ? `${parsed.name} ${sameNameCount + 1}` : parsed.name;
             const dexMod = Math.floor(((parsed.attributes?.dex || 10) - 10) / 2);
+            const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
+
+            if (spawnImmediately) {
+                let isHighestInit = false;
+                if (combatants.length === 0) {
+                    isHighestInit = true;
+                } else {
+                    const maxInit = Math.max(...combatants.map(c => c.initiative));
+                    if (rolledInit >= maxInit) isHighestInit = true;
+                }
+
+                const newEntity = {
+                    id: Date.now() + Math.floor(Math.random() * 1000),
+                    baseName: parsed.name,
+                    name: suggestedName,
+                    initiative: rolledInit,
+                    hpMax: parsed.hpMax,
+                    hpCurrent: parsed.hpMax,
+                    ca: parsed.ca,
+                    atkInfo: parsed.atkInfo,
+                    type: 'monster',
+                    cr: parsed.cr,
+                    size: parsed.size,
+                    typeAlign: parsed.typeAlign,
+                    speed: parsed.speed,
+                    attributes: { ...parsed.attributes },
+                    saves: parsed.saves,
+                    skills: parsed.skills,
+                    senses: parsed.senses,
+                    languages: parsed.languages,
+                    immunities: parsed.immunities,
+                    traitsActions: parsed.traitsActions || '',
+                    statusBrain: false,
+                    conditions: [],
+                    deathSaves: { success: 0, failures: 0 },
+                    stabilized: false
+                };
+
+                combatants.push(newEntity);
+                sortCombatants();
+                if (isHighestInit) activeTurnId = newEntity.id;
+                closeModal();
+                renderList(true);
+                showToast(`🧌 ${suggestedName} entrou (Init ${rolledInit})!`);
+                return;
+            }
 
             document.getElementById('nameInp').value = suggestedName;
-            document.getElementById('initInp').value = Math.floor(Math.random() * 20) + 1 + dexMod;
+            document.getElementById('initInp').value = rolledInit;
             document.getElementById('hpInp').value = parsed.hpMax;
             document.getElementById('caInp').value = parsed.ca;
             document.getElementById('crInp').value = parsed.cr;
@@ -718,50 +628,7 @@
             showToast(`✅ Ficha de "${parsed.name}" carregada!`);
         }
 
-        function handleSwipeGesture(startX, startY, endX, endY) {
-            const diffX = endX - startX;
-            const diffY = endY - startY;
-            if (Math.abs(diffX) > 75 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
-                if (diffX < 0) {
-                    openBestiaryDrawer();
-                } else {
-                    closeBestiaryDrawer();
-                }
-            }
-        }
-
-        function openBestiaryDrawer() {
-            document.getElementById('bestiaryDrawer').classList.add('drawer-open');
-            document.getElementById('drawerBackdrop').style.display = 'block';
-            renderBestiaryList();
-        }
-
-        function closeBestiaryDrawer() {
-            document.getElementById('bestiaryDrawer').classList.remove('drawer-open');
-            document.getElementById('drawerBackdrop').style.display = 'none';
-        }
-
-        function openImportModal() {
-            document.getElementById('jsonFileInp').value = "";
-            document.getElementById('jsonTextInp').value = "";
-            document.getElementById('importModal').style.display = 'flex';
-        }
-
-        function closeImportModal() {
-            document.getElementById('importModal').style.display = 'none';
-        }
-
-        function handleJsonFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('jsonTextInp').value = e.target.result;
-            };
-            reader.readAsText(file);
-        }
-
-        // Conversor do formato JSON 5eTools / 5etools-monster-grabber para a ficha do app
+        // Conversor do formato JSON 5eTools para a ficha do app (CA numérica pura + Atk "+X/1dY+Z")
         function parse5eToolsMonster(raw) {
             const sizeMap = { T: 'T', S: 'S', M: 'M', L: 'G', H: 'H', G: 'C' };
             const rawSize = Array.isArray(raw.size) ? raw.size[0] : (raw.size || 'M');
@@ -778,16 +645,17 @@
                 typeAlign += `, ${raw.alignment.join('')}`;
             }
 
+            // Extrai apenas o valor numérico da CA (ignora descrição da armadura)
             let ca = '10';
             if (Array.isArray(raw.ac) && raw.ac.length > 0) {
                 const firstAc = raw.ac[0];
                 if (typeof firstAc === 'number') ca = String(firstAc);
-                else if (typeof firstAc === 'object') {
-                    ca = firstAc.ac ? String(firstAc.ac) : '10';
-                    if (Array.isArray(firstAc.from)) ca += ` (${firstAc.from.join(', ').replace(/\{@[^ ]+ ([^}|]+)(?:\|[^}]*)?\}/g, '$1')})`;
+                else if (typeof firstAc === 'object' && firstAc.ac !== undefined) {
+                    ca = String(firstAc.ac);
                 }
             } else if (typeof raw.ac === 'number' || typeof raw.ac === 'string') {
-                ca = String(raw.ac);
+                const numMatch = String(raw.ac).match(/\d+/);
+                ca = numMatch ? numMatch[0] : '10';
             }
 
             let hpMax = 10;
@@ -852,22 +720,30 @@
             extractEntries(raw.reaction, 'REAÇÕES');
             extractEntries(raw.legendary, 'AÇÕES LENDÁRIAS');
 
+            // Extrai apenas o bônus de ataque e o dano no formato "+4/1d6+2"
             if (Array.isArray(raw.action) && raw.action.length > 0) {
-                const firstAction = raw.action[0];
-                const rawEntry = Array.isArray(firstAction.entries) ? String(firstAction.entries[0] || '') : '';
-                const hitMatch = rawEntry.match(/\{@hit ([+-]?\d+)\}/);
-                const dmgMatch = rawEntry.match(/\{@damage ([^}]+)\}/);
-                if (hitMatch || dmgMatch) {
-                    const hitStr = hitMatch ? (hitMatch[1].startsWith('+') || hitMatch[1].startsWith('-') ? hitMatch[1] : `+${hitMatch[1]}`) : '';
-                    const dmgStr = dmgMatch ? dmgMatch[1] : '';
-                    atkSummary = `${firstAction.name}: ${hitStr} ${dmgStr ? '(' + dmgStr + ')' : ''}`.trim();
-                } else {
-                    atkSummary = firstAction.name || '-';
+                for (let i = 0; i < raw.action.length; i++) {
+                    const act = raw.action[i];
+                    const rawEntry = Array.isArray(act.entries) ? act.entries.map(e => typeof e === 'string' ? e : '').join(' ') : '';
+                    const hitMatch = rawEntry.match(/\{@hit ([+-]?\d+)\}/);
+                    const dmgMatch = rawEntry.match(/\{@damage ([^}]+)\}/);
+
+                    if (hitMatch || dmgMatch) {
+                        const hitStr = hitMatch ? (hitMatch[1].startsWith('+') || hitMatch[1].startsWith('-') ? hitMatch[1] : `+${hitMatch[1]}`) : '';
+                        const dmgStr = dmgMatch ? dmgMatch[1].replace(/\s+/g, '') : '';
+                        if (hitStr && dmgStr) {
+                            atkSummary = `${hitStr}/${dmgStr}`;
+                        } else if (hitStr) {
+                            atkSummary = hitStr;
+                        } else if (dmgStr) {
+                            atkSummary = dmgStr;
+                        }
+                        break;
+                    }
                 }
             }
 
             return {
-                id: '5et_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
                 name: raw.name || 'Monstro Desconhecido',
                 cr: String(cr),
                 size,
@@ -884,152 +760,6 @@
                 atkInfo: atkSummary,
                 traitsActions: fullLines.join('\n')
             };
-        }
-
-        function process5eToolsImport() {
-            const rawText = document.getElementById('jsonTextInp').value.trim();
-            if (!rawText) {
-                showToast('⚠️ Cole ou carregue um JSON!');
-                return;
-            }
-
-            try {
-                const parsed = JSON.parse(rawText);
-                let monstersArray = [];
-
-                if (Array.isArray(parsed)) {
-                    monstersArray = parsed;
-                } else if (parsed.monster && Array.isArray(parsed.monster)) {
-                    monstersArray = parsed.monster;
-                } else if (typeof parsed === 'object' && parsed.name) {
-                    monstersArray = [parsed];
-                } else {
-                    showToast('⚠️ Formato JSON não reconhecido!');
-                    return;
-                }
-
-                let addedCount = 0;
-                monstersArray.forEach(m => {
-                    const formatted = parse5eToolsMonster(m);
-                    const existingIdx = importedMonsters.findIndex(item => item.name.toLowerCase() === formatted.name.toLowerCase());
-                    if (existingIdx !== -1) {
-                        importedMonsters[existingIdx] = formatted;
-                    } else {
-                        importedMonsters.push(formatted);
-                    }
-                    addedCount++;
-                });
-
-                localStorage.setItem('dnd_5etools_bestiary', JSON.stringify(importedMonsters));
-                renderBestiaryList();
-                closeImportModal();
-                showToast(`✅ ${addedCount} monstro(s) importado(s)!`);
-            } catch (err) {
-                console.error(err);
-                showToast('❌ Erro ao ler JSON! Verifique o texto.');
-            }
-        }
-
-        function renderBestiaryList() {
-            const container = document.getElementById('bestiaryList');
-            const query = (document.getElementById('bestiarySearchInp')?.value || '').toLowerCase();
-            container.innerHTML = '';
-
-            const filtered = importedMonsters.filter(m => m.name.toLowerCase().includes(query));
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-slate-500 text-sm mt-10 px-4">
-                        Nenhum monstro encontrado no bestiário.<br>
-                        Use a busca ao adicionar monstro (🧌) ou importe um JSON abaixo.
-                    </div>
-                `;
-                return;
-            }
-
-            filtered.forEach(m => {
-                const item = document.createElement('div');
-                item.className = "bg-slate-800/90 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2";
-                item.innerHTML = `
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center gap-2">
-                            <span class="font-bold text-slate-100 truncate">${m.name}</span>
-                            <span class="text-[10px] bg-slate-950 text-amber-400 px-1.5 py-0.5 rounded font-mono border border-slate-700 shrink-0">CR ${m.cr}</span>
-                        </div>
-                        <p class="text-xs text-slate-400 truncate mt-0.5">CA ${m.ca} | HP ${m.hpMax} | ${m.typeAlign}</p>
-                    </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                        <button onclick="openBestiaryDetails('${m.id}')" class="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs" title="Ver Ficha">🔍</button>
-                        <button onclick="deleteImportedMonster('${m.id}')" class="p-2 bg-red-950/70 hover:bg-red-900 text-red-400 rounded-lg text-xs" title="Excluir do Bestiário">🗑️</button>
-                        <button onclick="spawnMonsterToCombat('${m.id}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs shadow">＋ Combate</button>
-                    </div>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function deleteImportedMonster(id) {
-            importedMonsters = importedMonsters.filter(m => m.id !== id);
-            localStorage.setItem('dnd_5etools_bestiary', JSON.stringify(importedMonsters));
-            renderBestiaryList();
-        }
-
-        function openBestiaryDetails(id) {
-            const m = importedMonsters.find(item => item.id === id);
-            if (!m) return;
-            populateDetailsModal(m);
-        }
-
-        function spawnMonsterToCombat(id) {
-            const template = importedMonsters.find(m => m.id === id);
-            if (!template) return;
-
-            const sameNameCount = combatants.filter(c => c.type === 'monster' && (c.baseName === template.name || c.name === template.name)).length;
-            const displayName = sameNameCount > 0 ? `${template.name} ${sameNameCount + 1}` : template.name;
-
-            const dexMod = Math.floor(((template.attributes?.dex || 10) - 10) / 2);
-            const rolledInit = Math.floor(Math.random() * 20) + 1 + dexMod;
-
-            let isHighestInit = false;
-            if (combatants.length === 0) {
-                isHighestInit = true;
-            } else {
-                const maxInit = Math.max(...combatants.map(c => c.initiative));
-                if (rolledInit >= maxInit) isHighestInit = true;
-            }
-
-            const newEntity = {
-                id: Date.now() + Math.floor(Math.random() * 1000),
-                baseName: template.name,
-                name: displayName,
-                initiative: rolledInit,
-                hpMax: template.hpMax,
-                hpCurrent: template.hpMax,
-                ca: template.ca,
-                atkInfo: template.atkInfo,
-                type: 'monster',
-                cr: template.cr,
-                size: template.size,
-                typeAlign: template.typeAlign,
-                speed: template.speed,
-                attributes: { ...template.attributes },
-                saves: template.saves,
-                skills: template.skills,
-                senses: template.senses,
-                languages: template.languages,
-                immunities: template.immunities,
-                traitsActions: template.traitsActions || '',
-                statusBrain: false,
-                conditions: [],
-                deathSaves: { success: 0, failures: 0 },
-                stabilized: false
-            };
-
-            combatants.push(newEntity);
-            sortCombatants();
-            if (isHighestInit) activeTurnId = newEntity.id;
-            renderList(true);
-            showToast(`🧌 ${displayName} entrou (Init ${rolledInit})!`);
         }
 
         function handleCardPressStart(e) {
@@ -1086,10 +816,9 @@
         function openModal(type) {
             editingId = null; 
             modalType = type;
-            document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador (5eTools)' : 'Novo Monstro (5eTools)';
+            document.getElementById('modalTitle').innerText = type === 'player' ? 'Novo Jogador' : 'Novo Monstro (5eTools)';
             document.getElementById('initInp').value = "";
 
-            // Exibe a barra de busca do 5eTools apenas para monstros
             const searchBox = document.getElementById('fiveToolsSearchBox');
             const resultsBox = document.getElementById('fiveToolsSearchResults');
             document.getElementById('fiveToolsQueryInp').value = "";
@@ -1185,7 +914,9 @@
             const name = document.getElementById('nameInp').value;
             const init = parseInt(document.getElementById('initInp').value) || 0;
             const hp = parseInt(document.getElementById('hpInp').value) || 1;
-            const ca = document.getElementById('caInp').value || "10";
+            const rawCaInput = document.getElementById('caInp').value || "10";
+            const caNumMatch = String(rawCaInput).match(/\d+/);
+            const ca = caNumMatch ? caNumMatch[0] : "10";
             const atk = document.getElementById('atkInp').value || "-";
             const cr = document.getElementById('crInp').value || "1";
             const size = document.getElementById('sizeInp').value || "M";
@@ -1309,11 +1040,11 @@
             modalType = c.type;
             
             document.getElementById('fiveToolsSearchBox').classList.add('hidden');
-            document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro') + ' (5eTools)';
+            document.getElementById('modalTitle').innerText = 'Editar ' + (c.type === 'player' ? 'Jogador' : 'Monstro');
             document.getElementById('nameInp').value = c.name;
             document.getElementById('initInp').value = c.initiative;
             document.getElementById('hpInp').value = c.hpMax;
-            document.getElementById('caInp').value = c.ca;
+            document.getElementById('caInp').value = parseInt(c.ca) || 10;
             document.getElementById('atkInp').value = c.atkInfo;
             document.getElementById('crInp').value = c.cr || "1";
             document.getElementById('sizeInp').value = c.size || "M";
@@ -1517,7 +1248,7 @@
             container.innerHTML = "";
 
             if (combatants.length === 0) {
-                container.innerHTML = `<div class="text-slate-600 text-center mt-10">Lista vazia.<br><span class="text-xs text-slate-700">Toque em 🧌 para buscar no 5eTools ou deslize para a esquerda</span></div>`;
+                container.innerHTML = `<div class="text-slate-600 text-center mt-10">Lista vazia.<br><span class="text-xs text-slate-700">Toque em 🧌 para adicionar monstros do 5eTools</span></div>`;
                 return;
             }
 
@@ -1599,6 +1330,8 @@
                     `;
                 }
 
+                const displayCa = String(c.ca).match(/\d+/)?.[0] || c.ca;
+
                 card.innerHTML += `
                     <div class="hp-bar absolute left-0 top-0 bottom-0 z-0 opacity-20 transition-all duration-500" style="width: ${pct}%; background-color: ${hpBarColor};"></div>
                     <div class="relative z-10 flex items-center justify-between px-2 w-full h-full min-h-[64px]">
@@ -1611,7 +1344,7 @@
                                     <h3 class="font-bold text-lg leading-none truncate ${c.type === 'monster' ? 'text-red-400' : ''}">${c.name}</h3>
                                     <button data-id="${c.id}" class="detail-btn text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-1.5 py-0.5 rounded font-mono border border-slate-600 shrink-0" title="Ver Ficha 5eTools">CR ${c.cr || '1'} 🔍</button>
                                 </div>
-                                <p class="text-slate-300 text-sm font-semibold tracking-tight leading-none mt-1.5 truncate">CA: ${c.ca} | ${c.atkInfo}</p>
+                                <p class="text-slate-300 text-base font-semibold tracking-tight leading-none mt-1.5 truncate">CA: ${displayCa} | ${c.atkInfo}</p>
                             </div>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
